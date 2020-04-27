@@ -1,0 +1,86 @@
+---
+title: "historical"
+author: "Hans Quiogue"
+date: "4/27/2020"
+output: pdf_document
+---
+
+```{r Libraries, message=FALSE, warning=FALSE, include=FALSE}
+library(tidyverse)
+library(readxl)
+```
+
+```{r Some data cleaning, message=FALSE, warning=FALSE, include=FALSE}
+voting_col_names <- c("Year", "Total Population (Thousands)", "Total Population %",
+                      "Citizen Population %", "Total White Population %",
+                      "Citizen White Population %", "Total White Non Hispanic Population %",
+                      "Citizen White Non Hispanic Population %", "Total Black Population %",
+                      "Citizen Black Population %", "Total Asian Population %",
+                      "Citizen Asian Population %", "Total Hispanic/Other Population %",
+                      "Citizen Hispanic/Other Population %", "Male %", "Female %")
+
+hist_df <- read_xlsx("a1.xlsx", skip = 5, na = "NA")
+# Assigns proper column names 
+colnames(hist_df) <- voting_col_names
+# Converts all columns to numeric
+hist_df[] <- lapply(hist_df, function(x) as.numeric(x))
+# Converts year column to a categorical value
+hist_df$Year <- as.factor(hist_df$Year)
+```
+
+```{r Splitting up data, message=FALSE, warning=FALSE, include=FALSE}
+# Total data
+total_voted <- hist_df[1:28,]
+total_registered <- hist_df[33:60,]
+# 18 - 24 year olds data
+young_voted <- hist_df[66:93,]
+young_registered <- hist_df[99:126,]
+# 25 - 44 year olds data
+adult_voted <- hist_df[132:159,]
+adult_registered <- hist_df[165:192,]
+# 45 - 64 year olds data
+mid_aged_voted <- hist_df[198:225,]
+mid_aged_registered <- hist_df[231:258,]
+# 65+ year olds data
+elderly_voted <- hist_df[264:291,]
+elderly_registered <- hist_df[297:323,]
+
+# Adds age groups
+total_voted <- data.frame(append(total_voted, c(Age="Total"), after=0))
+total_registered <- data.frame(append(total_registered, c(Age="Total"), after=0))
+young_voted <- data.frame(append(young_voted, c(Age="18 to 24"), after=0))
+young_registed <- data.frame(append(young_registered, c(Age="18 to 24"), after=0))
+adult_voted <- data.frame(append(adult_voted, c(Age="25 to 44"), after=0))
+adult_registered <- data.frame(append(adult_registered, c(Age="25 to 44"), after=0))
+mid_aged_voted <- data.frame(append(mid_aged_voted, c(Age="45 to 64"), after=0))
+mid_aged_registered <- data.frame(append(mid_aged_registered, c(Age="45 to 64"), after=0))
+elderly_voted <- data.frame(append(elderly_voted, c(Age="65+"), after=0))
+elderly_registered <- data.frame(append(elderly_registered, c(Age="65+"), after=0))
+```
+
+```{r plot of all voting age groups}
+ggplot() +
+  geom_point(aes(Year, Total.Population..Thousands., group = Age, color = "Total"), data = total_voted) +
+  geom_line(aes(Year, Total.Population..Thousands., group = Age, color = "Total"), data = total_voted) + 
+  geom_point(aes(Year, Total.Population..Thousands., group = Age, color = "18 to 24 yrs"), data = young_voted) +
+  geom_line(aes(Year, Total.Population..Thousands., group = Age, color = "18 to 24 yrs"), data = young_voted) +
+  geom_line(aes(Year, Total.Population..Thousands., group = Age, color = "25 to 44 yrs"), data = adult_voted) +
+  geom_point(aes(Year, Total.Population..Thousands., group = Age, color = "25 to 44 yrs"), data = adult_voted) +
+  geom_line(aes(Year, Total.Population..Thousands., group = Age, color = "45 to 64 yrs"), data = mid_aged_voted) +
+  geom_point(aes(Year, Total.Population..Thousands., group = Age, color = "45 to 64 yrs"), data = mid_aged_voted) +
+  geom_line(aes(Year, Total.Population..Thousands., group = Age, color = "65+ yrs"), data = elderly_voted) +
+  geom_point(aes(Year, Total.Population..Thousands., group = Age, color = "65+ yrs"), data = elderly_voted) + 
+  ylab("Total Population (In Thousands)") + 
+  ggtitle("Voting Between Young People Compared to Other Age Groups (1964-2018)") +
+  labs(color='Age Groups') + 
+  xlab("Years (1964-2018)") + 
+  theme_minimal() +
+  theme(axis.text.x=element_blank()) 
+```
+
+```{r}
+ggplot(data = young_voted) +
+  aes(Year, Total.Population..Thousands.) +
+  geom_bar(stat = "identity")
+```
+
