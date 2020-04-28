@@ -41,36 +41,24 @@ state_2018
 ```
 
 ```{r Graph examples, message=FALSE, warning=FALSE}
-# Total number young people in US who voted and registered
-total_young <- state_2018 %>%
-  filter(Age == "18 to 24" & State == "US") %>% 
-  select(Age, `Total Population`, `Total Voted`, `Total Registered`)
-
-# Total number in US who voted and registered
-total_pop <- state_2018 %>% 
-  filter(Age == "Total" & State == "US") %>%
-  select(Age, `Total Population`, `Total Voted`, `Total Registered`)
-
-df <- rbind(total_pop, total_young)
-df$Age <- as.factor(df$Age)
-
 # Barplot showing how little young people vote compared to the rest of the population 
-ggplot(df) +
-  aes(Age, `Total Voted`) +
-  geom_bar(stat = "identity")
+ggplot(state_2018) +
+  aes(Age, `Total Voted`, fill = Age) +
+  geom_col(stat = "identity")
 ```
 
-```{r}
-young_2018 <- read_xlsx("young_2018.xlsx", skip = 6)
+```{r Young People and Education in 2018, message=FALSE, warning=FALSE}
+educ_2018 <- read_xlsx("young_2018.xlsx", skip = 6)
 
-# Cleaning column names
-colnames(young_2018) <- c("Gender", "Education", "Total Population",
-                          "Total Citizen Population", "Number (Registered)",
+# Cleaning column names: TODO: Make column names proper
+colnames(educ_2018) <- c("Gender", "Education", "Total Population",
+                          "Total Citizen Population", "Number (Registered)",  
                           "Percent (Registered)", "Number (Not Registered)",
                           "Percent (Not Registered)", "Number (No Response Registration)",
                           "Percent (No Response Registration)", "Number (Voted)", 
                           "Percent (Voted)", "Number (Not Voted)", "Percent (Not Voted)", 
-                          "Number (No Response Vote)", "Percent (No Response Vote)")
+                          "Number (No Response Vote)", "Percent (No Response Vote)",
+                          "temp", "temp2")
 
 genders <- c("Both Sexes", "Male", "Female")
 
@@ -78,15 +66,42 @@ genders <- c("Both Sexes", "Male", "Female")
 cnt = 1
 
 # Loop that replaces NA with correct genders names
-for(i in 1:nrow(young_2018)) {
+for(i in 1:nrow(educ_2018)) {
   cur_gender <- genders[cnt]     
-  young_2018[i,][1] <- cur_gender
+  educ_2018[i,][1] <- cur_gender
   if(i %% 7 == 0) {
     cnt = cnt + 1  
   }
 }
 
-young_2018 <- na.omit(young_2018)
-young_2018
+educ_2018 <- na.omit(educ_2018)
+```
+
+```{r message=FALSE, warning=FALSE}
+# Will education level for 18-24 year olds affect vote?
+educ_2018 %>% 
+  filter(Gender == "Both Sexes" & Education != "Total") %>% 
+  ggplot(aes(Education, as.numeric(`Total Population`), fill = Education)) +
+  geom_bar(stat = "identity")
+
+educ_2018 %>% 
+  filter(Gender != "Both Sexes" & Education != "Total") %>% 
+  ggplot(aes(Education, as.numeric(`Total Population`), fill = Education)) +
+  geom_bar(stat = "identity") +
+  facet_wrap(~Gender)
+
+# TODO: Statistical test (Higher education level, more they will vote perhaps?)
+# TODO: Perhaps get education data from earlier years to see if education has impacted young people voting when compared to today
+```
+
+```{r}
+# Will gender for 18-24 year olds affect vote? 
+
+educ_2018 %>% 
+  filter(Gender != "Both Sexes" & Education != "Total") %>% 
+  ggplot(aes(Gender, as.numeric(`Total Population`), fill = Gender)) +
+  geom_col(stat = "identity")
+
+# TODO: Statistical test? (From plots perhaps gender does not have a role in vote for 18-24 years)
 ```
 
