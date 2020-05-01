@@ -1,0 +1,296 @@
+---
+title: "Impact of Voter Age on Election Outcomes"
+author: "Hans Quiogue and Jackson Callaghan"
+date: "5/3/2020"
+output: html_document
+runtime: shiny
+---
+
+```{r Libraries, message=FALSE, warning=FALSE, include=FALSE}
+library(tidyverse)
+library(readxl)
+library(pander)
+library(forecast)
+library(DT)
+library(reshape2)
+```
+
+```{r Data Cleaning for Historical Data, message=FALSE, warning=FALSE, include=FALSE}
+# Uncleaned historical data
+hist_df <- read_xlsx("a1.xlsx", skip = 5, na = "NA")
+# Different voting category names to put into columns for the dataframe
+voting_col_names <- c("Year", "Population-Count", "Population-Percent",
+                      "Citizen-Percent", "White-Percent", "Citizen-White-Percent", 
+                      "White-Non-Hispanic-Percent", "Citizen-White-Non-Hispanic-Perc", 
+                      "Black-Percent", "Citizen-Black-Percent", "Asian-Percent",
+                      "Citizen-Asian-Percent", "Hispanic/Other-Percent",
+                      "Citizen-Hispanic/Other-Perc", "Male-Percent", "Female-Percent")
+# Assigns proper column names 
+colnames(hist_df) <- voting_col_names
+# Converts all columns to numeric
+hist_df[] <- lapply(hist_df, function(x) as.numeric(x))
+# Converts year column to a categorical value
+hist_df$Year <- as.factor(hist_df$Year)
+
+# 1964 to 2018 (Goes by every 2 year)
+years_length <- (2018 - 1964) / 2
+# List of proper age groups and voting status to put into dataframe
+age_groups <- c("Total", "18 to 24", "25 to 44", "45 to 64", "65+")
+vote_status <- c("Voted", "Registered")
+
+temp_df <- data.frame()
+
+# Integer values representing current index values of corresponding list
+curr_status <- 1
+curr_age <- 1
+
+# Loop to cleans up hist_df (Loop increments are added by 6 to account for missing columns)
+for(i in seq(1, nrow(hist_df), years_length + 6)) {
+  # Appends new rows to temp_df from subset of hist_df
+  if(i != 1) temp_df <- bind_rows(temp_df, hist_df[(i - 1):((i - 1) + years_length), ])
+  else temp_df <- bind_rows(temp_df, hist_df[i:(i + years_length), ])
+}
+
+# Appends new columns for age groups and voting statuses
+temp_df <- data.frame(append(temp_df, c(Age = age_groups[curr_status], 
+                                        Status = vote_status[curr_age]),
+                                        after = 0), stringsAsFactors = FALSE)
+
+temp_index = 1
+# Loop that corrects age group and voting status rows
+for(i in 1:(length(age_groups) * length(vote_status))) {
+  temp_df$Age[temp_index:(temp_index + years_length)] <- age_groups[curr_age]
+  temp_df$Status[temp_index:(temp_index + years_length)] <- vote_status[curr_status]
+  temp_index <- (temp_index + years_length) + 1
+  # Updates age group and voting status to match rows
+  if(curr_status == 1) curr_status = curr_status + 1
+  else {
+    curr_status = 1
+    curr_age = curr_age + 1
+  }
+}
+# Removes unnessary rows at the nd
+hist_df <- temp_df[1:279, ]
+
+hist_df$Age <- as.factor(hist_df$Age)
+hist_df$Status <- as.factor(hist_df$Status)
+```
+
+TODO (Intro stuff here): "A description of what you project is about and an overview of what you did. Include the main learning goal or research question." Voter turnout intro stuff blah blah
+
+```{r echo=FALSE, fig.align='center', message=FALSE, warning=FALSE}
+years_label <- ggplot2:::interleave(seq(1964,2018,4), "")
+
+hist_df %>% 
+  filter(Status == "Voted" & Age == "Total") %>% 
+  mutate(voted_count = (Population.Count * Population.Percent) / 100) %>% 
+  ggplot() +
+  geom_point(aes(Year, Population.Count, group = Age, color = "Eligible Population")) +
+  geom_line(aes(Year, Population.Count, group = Age, color = "Eligible Population")) +
+  geom_point(aes(Year, voted_count, group = Age, color = "Total Vote Count")) +
+  geom_line(aes(Year, voted_count, group = Age, color = "Total Vote Count")) +
+  ggtitle("Comparison Between Eligible Voters and Vote Count") +
+  ylab("Total Population Count (In Thousands)") + 
+  xlab("Years") + 
+  labs(color = "Groups") +
+  scale_x_discrete(labels = years_label) +
+  theme(plot.title = element_text(hjust = .5))
+
+# TODO: Match colors from previous plot (Make blue)
+hist_df %>% 
+  filter(Status == "Voted" & Age == "Total") %>% 
+  ggplot() +
+    aes(Year, Population.Percent, group = Age, color = Age) + 
+    geom_point() + geom_line() + 
+    ggtitle("Total Voting Percentage Over the Years") +
+    ylab("Percentage") + 
+    xlab("Years") + 
+    scale_x_discrete(labels = years_label) +
+    theme(plot.title = element_text(hjust = .5))
+```
+
+Based on the plots above, voter turnout has been steadily increasing over the years, but the gap between the total population who are eligible to vote and turnout are widening. The percentage of votes over the years has also dropped. Looking for the potential problems in voter turnout, we wanted to focus on different demographics, specifically age groups.
+
+```{r echo=FALSE, fig.align='center', message=FALSE, warning=FALSE}
+plot_title <- paste("Age Groups that Voted in the U.S. (1964-2018)")
+count_label <- paste("Total Voted Count (In Thousands)")
+
+hist_df %>% 
+  filter(Status == "Voted" & Age != "Total") %>% 
+  mutate(test = (Population.Count * Population.Percent) / 100) %>% 
+  ggplot() +
+  aes(Year, test, group = Age, color = Age) + 
+  geom_point() + geom_line() + 
+  ggtitle(plot_title) +
+  ylab(count_label) + 
+  xlab("Years") + 
+  scale_x_discrete(labels = years_label) +
+  theme(plot.title = element_text(hjust = .5))
+
+hist_df %>%
+  filter(Status == "Voted" & Age != 'Total') %>% 
+  ggplot() +
+  aes(Age, Population.Percent, fill = Age) +
+  geom_boxplot() +
+  ggtitle("Mean Voting Percentages Between Age Groups") + 
+  ylab("Mean Voting Percentage") +
+  xlab("Age Groups") + 
+  theme(plot.title = element_text(hjust = .5))
+
+mean_table <- hist_df %>% 
+  filter(Status == "Voted") %>% 
+  group_by(Age) %>% 
+  summarize(`Mean of Age Groups` = mean(Population.Percent)) %>% 
+  rename(`Age Groups` = Age)
+datatable(mean_table)
+```
+
+From the plots, it seems that young voters seem to have the least turnout compared to other groups. 
+
+## Interactive Plots on Voting and Registration Berween Age Groups
+
+```{r Overall Votes and Registration, echo=FALSE, message=FALSE, warning=FALSE}
+inputPanel(
+  selectInput("plot_change", "Choose a plot:", 
+              choices = list("Total Count" = 1, 
+                              "Percentage" = 2),
+              selected = 1),
+  checkboxGroupInput("hist_ages", "Choose an age group:",
+                      choices = list("Total" = 1,"Young" = 2,
+                                     "Adult" = 3,"Mid Age" = 4,
+                                     "Elderly" = 5),
+                      selected = c(1, 2, 3, 4, 5)),
+  radioButtons("hist_status", "Choose voting status:",
+               choices = list("Voted" = 1, "Registered" = 2),
+               selected = 1),
+  sliderInput("hist_years", "(TODO) Choose between years:",
+              min = 1964, max = 2018, value = c(1964, 2018), sep = ""
+  )
+)
+
+renderPlot({
+  # Dataframe of filtered and selected age groups from user input
+  plot_df <- hist_df[hist_df$Age %in% age_groups[as.numeric(input$hist_ages)], ]
+  years_label <- ggplot2:::interleave(seq(1964,2018,4), "")
+  plot_title <- paste("Age Groups that", vote_status[as.numeric(input$hist_status)], "in the U.S.")
+  count_label <- paste("Total", vote_status[as.numeric(input$hist_status)], "Count (In Thousands)")
+  select_vote <- as.numeric(input$hist_status)
+  # Historical plot of either total count  on votes/registratiob
+  if(input$plot_change == 1) {
+    plot_df %>% 
+      filter(Status == vote_status[select_vote]) %>% 
+      # TODO Fix years slider
+      # filter(input$hist_years[1] <= Year & input$hist_years[2] >= Year) %>% 
+      mutate(status_pop = (Population.Count * Population.Percent) / 100) %>% 
+      ggplot() +
+      aes(Year, status_pop, group = Age, color = Age) + 
+      geom_point() + geom_line() + 
+      ggtitle(plot_title) +
+      ylab(count_label) + 
+      xlab("Years") + 
+      scale_x_discrete(labels = years_label) +
+      theme(plot.title = element_text(hjust = .5))
+  }
+  # Historical plot of either votes and registration data
+  else {
+      plot_df <- plot_df %>% filter(Status == vote_status[select_vote])
+      title_perc <- paste("Percentage Between Age Groups That", vote_status[select_vote])
+      # Historical plot
+      ggplot(data = plot_df) +
+        aes(Year, Population.Percent, group = Age, color = Age) + 
+        geom_point() + geom_line() + 
+        ggtitle(title_perc) +
+        ylab("Percentage") + 
+        xlab("Years") + 
+        scale_x_discrete(labels = years_label) +
+        theme(plot.title = element_text(hjust = .5))
+  }
+})
+
+renderDataTable({
+  # Dataframe of filtered and selected age groups from user input
+  table_df <- hist_df[hist_df$Age %in% age_groups[as.numeric(input$hist_ages)], ]
+  select_vote <- as.numeric(input$hist_status)
+  # Table of historical data
+  table_df %>% 
+    filter(Status == vote_status[select_vote]) %>% 
+    mutate(status_pop = (Population.Count * Population.Percent) / 100) %>% 
+    select(Year, Age, status_pop, Population.Percent) %>%
+    rename(`Population Count` = status_pop) %>% 
+    rename(`Population Percentage` = Population.Percent)
+})
+```
+
+* TODO BELOW *
+
+```{r}
+# Dataframe putting hist_df into a long format based on races
+race_df <- hist_df %>% filter(Status == "Voted")
+race_df <- melt(race_df, id.vars = c("Age", "Year"), 
+                measure.vars = c("White.Percent", "White.Non.Hispanic.Percent",
+                                 "Black.Percent", "Asian.Percent",
+                                 "Hispanic.Other.Percent"))
+```
+
+```{r}
+# Plots for 18 year old voters by race
+race_df <- na.omit(race_df)
+
+hist_df %>% 
+  filter(Age == '18 to 24') %>% 
+  ggplot(aes(Year, White.Percent, group = Age)) +
+  geom_point() + geom_smooth()
+
+hist_df %>% 
+  filter(Age == '18 to 24' & (as.character(Year) > 1994)) %>% 
+  ggplot(aes(Year, White.Non.Hispanic.Percent, group = Age)) +
+  geom_point() + geom_smooth()
+
+# TODO: Other races
+
+# race_df %>% 
+#  filter(Age == '18 to 24' | Year >= 2000) %>% 
+#  ggplot(aes(Year, value, group = Age)) +
+#  geom_point() + geom_smooth() +
+#  facet_wrap(~variable) 
+```
+
+```{r}
+race_df %>% 
+  filter(Age == "18 to 24") %>% 
+  group_by(variable) %>%
+  summarize(`Mean Votes by Young Voters` = mean(value)) %>% 
+  ggplot() +
+  aes(variable, `Mean Votes by Young Voters`, fill = variable) +
+  geom_bar(stat = "identity")
+
+race_df %>% 
+  filter(Year == "2018" & Age != "Total") %>% 
+  ggplot(aes(variable, value, fill = variable)) +
+  geom_bar(stat = "identity") +
+  facet_wrap(~Age)
+```
+
+```{r}
+test <- race_df %>% filter(Age == "18 to 24")
+summary(lm(value ~ variable, data = test))
+
+step(lm(value ~ variable, data = test))
+```
+
+```{r}
+# TODO MAKE SHINY OF THIS
+
+time_df <- hist_df %>% filter(Status == "Voted" & Age == "18 to 24")
+
+votes_vec <- time_df$Population.Percent
+votes_vec <- na.omit(votes_vec)
+
+votes_ts <- ts(votes_vec, frequency = .5, start = c(1964, 1), end = c(2018, 1))
+plot.ts(votes_ts)
+
+fit <- HoltWinters(votes_ts, gamma = FALSE)
+plot(fit)
+pred <- forecast:::forecast.HoltWinters(fit, h = 5, lower = 0, upper = 100)
+plot(pred, )
+```
