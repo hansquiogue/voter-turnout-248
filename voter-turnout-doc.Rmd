@@ -13,6 +13,7 @@ library(pander)
 library(forecast)
 library(DT)
 library(reshape2)
+library(kableExtra)
 ```
 
 ```{r Data Cleaning for Historical Data, message=FALSE, warning=FALSE, include=FALSE}
@@ -101,7 +102,18 @@ hist_df %>%
   filter(Status == "Voted" & Age == "Total") %>% 
   ggplot() +
     aes(Year, Population.Percent, group = Age, color = Age) + 
-    geom_point() + geom_line() + 
+    geom_point() + geom_line() +
+    ggtitle("Total Voting Percentage Over the Years") +
+    ylab("Percentage") + 
+    xlab("Years") + 
+    scale_x_discrete(labels = years_label) +
+    theme(plot.title = element_text(hjust = .5))
+
+hist_df %>% 
+  filter(Status == "Voted" & Age == "Total") %>% 
+  ggplot() +
+    aes(Year, Population.Percent, group = Age, color = Age) + 
+    geom_point() + geom_smooth() +
     ggtitle("Total Voting Percentage Over the Years") +
     ylab("Percentage") + 
     xlab("Years") + 
@@ -121,6 +133,18 @@ hist_df %>%
   ggplot() +
   aes(Year, test, group = Age, color = Age) + 
   geom_point() + geom_line() + 
+  ggtitle(plot_title) +
+  ylab(count_label) + 
+  xlab("Years") + 
+  scale_x_discrete(labels = years_label) +
+  theme(plot.title = element_text(hjust = .5))
+
+hist_df %>% 
+  filter(Status == "Voted" & Age != "Total") %>% 
+  mutate(test = (Population.Count * Population.Percent) / 100) %>% 
+  ggplot() +
+  aes(Year, test, group = Age, color = Age) + 
+  geom_point() + geom_smooth() + 
   ggtitle(plot_title) +
   ylab(count_label) + 
   xlab("Years") + 
@@ -221,76 +245,188 @@ renderDataTable({
 })
 ```
 
-* TODO BELOW *
+## Does Young Voter Turnout Drop With Race?
 
-```{r}
+```{r message=FALSE, warning=FALSE, include=FALSE}
 # Dataframe putting hist_df into a long format based on races
 race_df <- hist_df %>% filter(Status == "Voted")
 race_df <- melt(race_df, id.vars = c("Age", "Year"), 
                 measure.vars = c("White.Percent", "White.Non.Hispanic.Percent",
                                  "Black.Percent", "Asian.Percent",
                                  "Hispanic.Other.Percent"))
-```
 
-```{r}
-# Plots for 18 year old voters by race
 race_df <- na.omit(race_df)
-
-hist_df %>% 
-  filter(Age == '18 to 24') %>% 
-  ggplot(aes(Year, White.Percent, group = Age)) +
-  geom_point() + geom_smooth()
-
-hist_df %>% 
-  filter(Age == '18 to 24' & (as.character(Year) > 1994)) %>% 
-  ggplot(aes(Year, White.Non.Hispanic.Percent, group = Age)) +
-  geom_point() + geom_smooth()
-
-# TODO: Other races
-
-# race_df %>% 
-#  filter(Age == '18 to 24' | Year >= 2000) %>% 
-#  ggplot(aes(Year, value, group = Age)) +
-#  geom_point() + geom_smooth() +
-#  facet_wrap(~variable) 
 ```
 
-```{r}
+Looking at race for 18-24 year old voters:
+
+```{r Plots for young voters by race, echo=FALSE, fig.align='center', message=FALSE, warning=FALSE}
+hist_df %>% 
+  filter(Age == '18 to 24' & Status == "Voted") %>% 
+  ggplot(aes(Year, White.Percent, group = Age)) +
+  geom_point(color = "blue") + geom_smooth() +
+  ggtitle("White Voting Percentage Over Time") +
+  scale_x_discrete(labels = years_label) +
+  ylab("Voting Percentage") +
+  xlab("Years") +
+  theme(plot.title = element_text(hjust = .5))
+
+hist_df %>% 
+  filter(Age == '18 to 24' & (as.character(Year) >= 1994) & Status == "Voted") %>% 
+  ggplot(aes(Year, White.Non.Hispanic.Percent, group = Age)) +
+  ggtitle("White (Non Hispanic) Voting Percentage Over Time") +
+  geom_point(color = "Red") + geom_smooth(color = "Red") +
+  ylab("Voting Percentage") +
+  xlab("Years") +
+  theme(plot.title = element_text(hjust = .5))
+
+hist_df %>% 
+  filter(Age == '18 to 24' & Status == "Voted") %>% 
+  ggplot(aes(Year, Black.Percent, group = Age)) +
+  geom_point(color = "Green") + geom_smooth(color = "Green") +
+  ggtitle("Black Voting Percentage Over Time") +
+  ylab("Voting Percentage") + 
+  xlab("Years") +
+  scale_x_discrete(labels = years_label) +
+  theme(plot.title = element_text(hjust = .5))
+
+
+hist_df %>% 
+  filter(Age == '18 to 24' & Status == "Voted" & (as.character(Year) >= 1994)) %>% 
+  ggplot(aes(Year, Asian.Percent, group = Age)) +
+  geom_point(color = "Yellow") + geom_smooth(color = "Yellow") +
+  ggtitle("Asian Voting Percentage Over Time") +
+  ylab("Voting Percentage") + 
+  xlab("Years") +
+  theme(plot.title = element_text(hjust = .5))
+
+hist_df %>% 
+  filter(Age == '18 to 24' & Status == "Voted" & (as.character(Year) >= 1974)) %>% 
+  ggplot(aes(Year, Hispanic.Other.Percent, group = Age)) +
+  geom_point(color = "Purple") + geom_smooth(color = "Purple") +
+  ggtitle("Hispanic/Other Voting Percentage Over Time") +
+  ylab("Voting Percentage") + 
+  xlab("Years") +
+  theme(plot.title = element_text(hjust = .5))
+
+# TODO: Make plot colors consistant
+
+race_df %>% 
+  filter(Age == '18 to 24') %>% 
+  ggplot(aes(Year, value, group = Age, color = variable)) +
+  geom_point() + geom_smooth() +
+  facet_wrap(~variable) +
+  ggtitle("Young Voters and Race") +
+  ylab("Voting Percentage") +
+  xlab("Years (1964-2018)") +
+  labs(color = "Races") +
+  theme_minimal() +
+  theme(axis.text.x = element_blank(),
+        plot.title = element_text(hjust = .5)) 
+```
+
+```{r echo=FALSE, fig.align='center', message=FALSE, warning=FALSE}
+race_names <- c("White", "White (Non Hispanic)", 
+                "Black", "Asian", "Hispanic/Other")
+
 race_df %>% 
   filter(Age == "18 to 24") %>% 
   group_by(variable) %>%
-  summarize(`Mean Votes by Young Voters` = mean(value)) %>% 
+  summarize(`Vote Count` = mean(value)) %>% 
   ggplot() +
-  aes(variable, `Mean Votes by Young Voters`, fill = variable) +
-  geom_bar(stat = "identity")
+  aes(variable, `Vote Count`, fill = variable) +
+  geom_bar(stat = "identity") +
+  ggtitle("Mean Votes of Young Voters by Race") +
+  xlab("Races") +
+  scale_x_discrete(labels = race_names)
 
 race_df %>% 
   filter(Year == "2018" & Age != "Total") %>% 
   ggplot(aes(variable, value, fill = variable)) +
   geom_bar(stat = "identity") +
-  facet_wrap(~Age)
+  ggtitle("Voting Percents of Young People by Race") +
+  xlab("Races") +
+  ylab("Voting Percentages") +
+  facet_wrap(~Age) +
+  scale_x_discrete(labels = race_names) +
+  theme_minimal() +
+  labs(variable = "Races") +
+  theme(axis.text.x = element_blank(),
+        plot.title = element_text(hjust = .5)) 
 ```
 
-```{r}
-test <- race_df %>% filter(Age == "18 to 24")
-summary(lm(value ~ variable, data = test))
+## Race Testing - Multiple Linear Regression
 
-step(lm(value ~ variable, data = test))
+Could we make predictions based on race and young voters? We can build and fit a multiple linear regression model, with different races as predictor variables and young voting percentage as the outcome variable, to test if there is no significant prediction of young voters by different race groups.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Cleaning up race values
+lm_race <- race_df %>% filter(Age == "18 to 24")
+lm_race$variable <- as.character(lm_race$variable)
+lm_race$variable[lm_race$variable == "White.Percent"] <- "White"
+lm_race$variable[lm_race$variable == "White.Non.Hispanic.Percent"] <- "White (Non Hispanic)"
+lm_race$variable[lm_race$variable == "Black.Percent"] <- "Black"
+lm_race$variable[lm_race$variable == "Asian.Percent"] <- "Asian"
+lm_race$variable[lm_race$variable == "Hispanic.Other.Percent"] <- "Hispanic or Other"
+lm_race$variable <- as.factor(lm_race$variable)
+lm_race <- lm_race %>% rename(race = variable) %>% rename(percentage = value)
+
+lm_fit <- lm(percentage ~ race, data = lm_race)
+summary(lm_fit) %>% pander
+
+# TODO: Possibly other linear regression tests with races with citizenship?
 ```
 
-```{r}
-# TODO MAKE SHINY OF THIS
+Based on the results, (Put fitted model interpretations here). (Do we reject the null?)
 
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+step(lm(percentage ~ race, data = lm_race), direction = "both", trace = 0)
+```
+
+To evaluate the model, the stepwise algorithm was used in both directions and it concluded that the current model that included all races as the coefficients is the best to use.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# TODO
+plot(lm_fit$residuals ~ lm_fit$fitted.values)
+abline(lm_fit, h = 0)
+```
+
+Based on a plot between residuals versus the fitted values however, there is a noticable pattern; a multiple linear regression model would probably not be the best model to use for prediction with race and young voters. 
+
+## The Future
+
+What could happen for young voter turnout? To predict this, we created a time series, a vector of values specifically on a the total population who voted over the years.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 time_df <- hist_df %>% filter(Status == "Voted" & Age == "18 to 24")
-
 votes_vec <- time_df$Population.Percent
 votes_vec <- na.omit(votes_vec)
-
 votes_ts <- ts(votes_vec, frequency = .5, start = c(1964, 1), end = c(2018, 1))
 plot.ts(votes_ts)
+```
 
+Then to create future prediction, we fitted a Holt-Winters forecasting model.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 fit <- HoltWinters(votes_ts, gamma = FALSE)
 plot(fit)
 pred <- forecast:::forecast.HoltWinters(fit, h = 5, lower = 0, upper = 100)
-plot(pred, )
+plot(pred)
 ```
+
+Based on the model, it seems that voter turnout for young people is staying roughly the same.
+
+## Interactive Forecasting with HoltWinters Model of Young Voters
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+inputPanel(
+  numericInput("num", "Enter amount of years to make prediction", 
+               value = 5, min = 1, max = 100)
+  )
+
+renderPlot({
+  pred <- forecast:::forecast.HoltWinters(fit, h = input$num[1], lower = 0, upper = 100)
+  plot(pred)
+})
+```
+
