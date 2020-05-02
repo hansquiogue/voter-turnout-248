@@ -31,7 +31,8 @@ ui <- fluidPage(
             )
         ),
         mainPanel(
-            plotOutput("elecPlot")
+            plotOutput("elecPlot"),
+            plotOutput("resPlot")
         )
         
     )
@@ -72,9 +73,23 @@ server <- function(input, output) {
     
     data("fifty_states")
     
+    results <- read_csv("1976-2016-president.csv")
+    party.results <- results %>% 
+        mutate(party = replace(party, party == "democratic-farmer-labor", "democrat")) %>% 
+        filter(party %in% c("democrat", "republican")) %>% 
+        filter(writein == FALSE) %>% 
+        select(-candidate) %>% 
+        pivot_wider(
+            names_from = party,
+            values_from = candidatevotes
+        ) %>% 
+        mutate(p.dem = democrat / totalvotes) %>% 
+        mutate(p.rep = republican / totalvotes) %>% 
+        mutate(partyscore = p.rep - p.dem)
+    
     # states_map <- us_map()
 
-    output$elecPlot <- renderPlot({
+    output$elecPlot <- renderCachedPlot({
         
         # merge <- states.turnout %>% 
         #     filter(year == input$year)
@@ -100,7 +115,33 @@ server <- function(input, output) {
         else {
             ret_plot + scale_fill_viridis(limits = c(0, 1), label = scales::percent)
         }
-    })
+    },
+    cache = diskCache(),
+    cacheKeyExpr = input$year
+   ) 
+    
+    output$resPlot <- renderCachedPlot({
+        party.results %>% 
+            filter(year == input$year) %>% 
+            ggplot(aes(map_id = tolower(state))) + # map_id must be lowercase for whatever reason
+                geom_map(aes(fill = partyscore), map = fifty_states, color = "lightgrey") +
+                expand_limits(x = fifty_states$long, y = fifty_states$lat) +
+                coord_map(projection = "albers", lat0=30, lat1=40) +
+                labs(title = paste("Presidential Popular Vote Leaning by State (", input$year, ")", sep = ""), fill = "Party Score (-1 = 100% Democrat, 1 = 100% Republican)") +
+                theme_void() +
+                scale_fill_gradient2(
+                    low = "blue", 
+                    mid = "white", 
+                    high = "red", 
+                    limits = c(-1, 1),
+                    guide = guide_colorbar(title.position = "top")
+                ) +
+                theme(legend.position = "bottom", legend.box = "horizontal") +
+                fifty_states_inset_boxes()
+    },
+    cache = diskCache(),
+    cacheKeyExpr = input$year
+    )
 }
 
 # Run the application 

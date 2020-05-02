@@ -1,0 +1,111 @@
+---
+title: "MIT election results"
+author: "Jackson Callaghan"
+date: "5/2/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(readxl)
+library(ggridges)
+library(scales)
+library(gridExtra)
+library(viridis)
+library(maps)
+library(fiftystater)
+```
+
+```{r}
+theme_set(theme_minimal())
+```
+
+```{r}
+results <- read_csv("1976-2016-president.csv")
+```
+
+```{r}
+# this is kinda worthless for use in report, but helps point out stuff for further study
+results %>%
+  filter(candidatevotes > 5 * mean(results$candidatevotes)) %>% 
+  # unique() %>% 
+  # length()
+  ggplot() +
+    aes(x = party, y = candidatevotes, fill = party) +
+    scale_fill_viridis(discrete = TRUE) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    geom_bar(stat = "identity") +
+    facet_wrap(~year)
+```
+
+```{r}
+data("fifty_states")
+
+results %>% 
+  filter(year == 2016) %>% 
+  filter(party == "democrat") %>%
+  filter(writein == FALSE) %>%
+  mutate(pdem = candidatevotes / totalvotes) %>%
+  # nrow()
+  ggplot(aes(map_id = tolower(state))) + # map_id must be lowercase for whatever reason
+      geom_map(aes(fill = pdem), map = fifty_states, color = "white") +
+      expand_limits(x = fifty_states$long, y = fifty_states$lat) +
+      coord_map(projection = "albers", lat0=30, lat1=40) +
+      labs(title = "Percent Democratic Vote in 2016 by State", fill = "Percent Democrat") +
+      theme_void() +
+      scale_fill_viridis(limits = c(0, 1)) +
+      fifty_states_inset_boxes()
+```
+```{r}
+pres.results <- read_csv("1976-2016-president.csv")
+  
+  party.results <- pres.results %>% 
+      # full_join(select(sena.results, -district)) %>% 
+      # full_join(select(hous.results, -district)) %>% 
+      filter(writein == FALSE) %>% 
+      filter(year != 2018) %>% 
+      mutate(party = replace(party, party == "democratic-farmer-labor", "democrat")) %>% 
+      filter(party %in% c("democrat", "republican")) %>% 
+      select(-candidate) %>% 
+      pivot_wider(
+          names_from = party,
+          values_from = candidatevotes,
+          values_fill = list(democrat = 0, republican = 0)
+      ) %>% 
+      # filter(totalvotes != 1) %>% 
+      # party.results$democrat <- unlist(party.results$democrat, use.names = FALSE)
+      mutate(p.dem = democrat / totalvotes) %>% 
+      mutate(p.rep = republican / totalvotes) %>% 
+      mutate(partyscore = p.rep - p.dem)
+
+party.results %>% 
+  filter(year == 2016) %>% 
+  ggplot(aes(map_id = tolower(state))) + # map_id must be lowercase for whatever reason
+      geom_map(aes(fill = partyscore), map = fifty_states, color = "lightgrey") +
+      expand_limits(x = fifty_states$long, y = fifty_states$lat) +
+      coord_map(projection = "albers", lat0=30, lat1=40) +
+      labs(title = "State Party Leanings (2016)", fill = "Party Score (-1 = 100% Democrat, 1 = 100% Republican)") +
+      theme_void() +
+      scale_fill_gradient2(
+        low = "blue", 
+        mid = "white", 
+        high = "red", 
+        limits = c(-1, 1),
+        guide = guide_colorbar(title.position = "top")
+        ) +
+      theme(legend.position = "bottom", legend.box = "horizontal") +
+      fifty_states_inset_boxes()
+  
+```
+
+
+```{r}
+sena.results <- read_csv("1976-2018-senate.csv")
+hous.results <- read_csv("1976-2018-house2.csv")
+```
+
+
