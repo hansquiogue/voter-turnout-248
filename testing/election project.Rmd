@@ -148,3 +148,73 @@ states.turnout %>%
                 facet_wrap(~type)
 ```
 
+```{r}
+# read in age demographics
+raw.byrace <- read_excel(
+  "CPS Turnout Rates.xlsx",
+  sheet = "Race and Ethnicity",
+  range = "A2:R6"
+)
+
+# pivot to tidy shape
+byrace <- raw.byrace %>% 
+  pivot_longer(cols = 2:length(raw.byrace), names_to = "year", values_to = "turnout")
+colnames(byrace)[1] = "group"
+# change types and mutate new type column
+byrace$year <- as.numeric(byrace$year)
+byrace <- byrace %>% mutate(type = ifelse(year %in% seq(1986, 2020, 4), "Midterm", "Presidential"))
+byrace$type <- factor(byrace$type, levels = c("Presidential", "Midterm"))
+```
+
+```{r}
+ggplot(byrace) +
+  aes(
+    x = as.factor(year), 
+    y = turnout, 
+    color = group, 
+    group = group) +
+  geom_line(size = 1) +
+  scale_y_continuous(labels = scales::percent, limits = c(0, 1)) +
+  labs(x = "Year", y = "Turnout", title = "Election Turnout", color = "Age Group") +
+  theme_minimal() +
+  scale_color_viridis(discrete = TRUE) +
+  facet_wrap(~type, scales = "free_x") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+
+```{r}
+# read in age demographics
+raw.byedu <- read_excel(
+  "CPS Turnout Rates.xlsx",
+  sheet = "Education",
+  range = "A2:R6"
+)
+
+# pivot to tidy shape
+byedu <- raw.byedu %>% 
+  pivot_longer(cols = 2:length(raw.byedu), names_to = "year", values_to = "turnout")
+colnames(byedu)[1] = "edu_lvl"
+# change types and mutate new type column
+byedu$year <- as.numeric(byedu$year)
+byedu <- byedu %>% mutate(type = ifelse(year %in% seq(1986, 2020, 4), "Midterm", "Presidential"))
+byedu$type <- factor(byedu$type, levels = c("Presidential", "Midterm"))
+byedu$edu_lvl <- factor(byedu$edu_lvl, levels = c("Less Than High School", "High School Grad", "Some College to College Grad", "Post-Graduate"))
+```
+
+```{r}
+ggplot(byedu) +
+  aes(
+    x = as.factor(year), 
+    y = turnout, 
+    color = edu_lvl, 
+    group = edu_lvl) +
+  geom_line(size = 1) +
+  scale_y_continuous(labels = scales::percent, limits = c(0, 1)) +
+  labs(x = "Year", y = "Turnout", title = "Election Turnout", color = "Age Group") +
+  theme_minimal() +
+  scale_color_viridis(discrete = TRUE) +
+  facet_wrap(~type, scales = "free_x") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+

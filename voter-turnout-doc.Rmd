@@ -6,6 +6,12 @@ output: html_document
 runtime: shiny
 ---
 
+<style>
+    body .main-container {
+        max-width: 1000px;
+    }
+</style>
+
 ```{r Libraries, message=FALSE, warning=FALSE, include=FALSE}
 library(tidyverse)
 library(readxl)
@@ -14,7 +20,13 @@ library(forecast)
 library(DT)
 library(reshape2)
 library(kableExtra)
+library(viridis)
 ```
+
+```{r Set Theme, message=FALSE, warning=FALSE, include=FALSE}
+theme_set(theme_minimal())
+```
+
 
 ```{r Data Cleaning for Historical Data, message=FALSE, warning=FALSE, include=FALSE}
 # Uncleaned historical data
@@ -75,27 +87,36 @@ hist_df <- temp_df[1:279, ]
 
 hist_df$Age <- as.factor(hist_df$Age)
 hist_df$Status <- as.factor(hist_df$Status)
+hist_df <- mutate(hist_df, election.type = ifelse(Year %in% seq(1964, 2020, 4), "Presidential", "Midterm")) 
 ```
 
 TODO (Intro stuff here): "A description of what you project is about and an overview of what you did. Include the main learning goal or research question." Voter turnout intro stuff blah blah
 
-```{r echo=FALSE, fig.align='center', message=FALSE, warning=FALSE}
+```{r echo=FALSE, fig.align='center', message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
 years_label <- ggplot2:::interleave(seq(1964,2018,4), "")
 
 hist_df %>% 
   filter(Status == "Voted" & Age == "Total") %>% 
   mutate(voted_count = (Population.Count * Population.Percent) / 100) %>% 
   ggplot() +
-  geom_point(aes(Year, Population.Count, group = Age, color = "Eligible Population")) +
-  geom_line(aes(Year, Population.Count, group = Age, color = "Eligible Population")) +
-  geom_point(aes(Year, voted_count, group = Age, color = "Total Vote Count")) +
-  geom_line(aes(Year, voted_count, group = Age, color = "Total Vote Count")) +
-  ggtitle("Comparison Between Eligible Voters and Vote Count") +
-  ylab("Total Population Count (In Thousands)") + 
-  xlab("Years") + 
-  labs(color = "Groups") +
-  scale_x_discrete(labels = years_label) +
-  theme(plot.title = element_text(hjust = .5))
+    aes(x = Year, group = Age) +
+    geom_point(aes(y = Population.Count, color = "Eligible Population")) +
+    geom_line(aes(y = Population.Count, color = "Eligible Population")) +
+    geom_point(aes(y = voted_count, color = "Total Vote Count")) +
+    geom_line(aes(y = voted_count, color = "Total Vote Count")) +
+    labs(
+      title = "Comparison Between Eligible Voters and Vote Count",
+      y = "Total Population Count (In Thousands)",
+      x = "Years",
+      color = "Groups"
+      ) + 
+    scale_x_discrete(labels = years_label) +
+    theme(
+      plot.title = element_text(hjust = .5), 
+      axis.text.x = element_text(angle = 45, hjust = 1)
+      ) +
+    scale_color_viridis(discrete = TRUE) +
+    facet_wrap(~election.type)
 
 # TODO: Match colors from previous plot (Make blue)
 hist_df %>% 
@@ -107,6 +128,7 @@ hist_df %>%
     ylab("Percentage") + 
     xlab("Years") + 
     scale_x_discrete(labels = years_label) +
+    scale_color_viridis(discrete = TRUE) +
     theme(plot.title = element_text(hjust = .5))
 
 hist_df %>% 
@@ -118,12 +140,13 @@ hist_df %>%
     ylab("Percentage") + 
     xlab("Years") + 
     scale_x_discrete(labels = years_label) +
+    scale_color_viridis(discrete = TRUE) +
     theme(plot.title = element_text(hjust = .5))
 ```
 
 Based on the plots above, voter turnout has been steadily increasing over the years, but the gap between the total population who are eligible to vote and turnout are widening. The percentage of votes over the years has also dropped. Looking for the potential problems in voter turnout, we wanted to focus on different demographics, specifically age groups.
 
-```{r echo=FALSE, fig.align='center', message=FALSE, warning=FALSE}
+```{r echo=FALSE, fig.align='center', message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
 plot_title <- paste("Age Groups that Voted in the U.S. (1964-2018)")
 count_label <- paste("Total Voted Count (In Thousands)")
 
@@ -173,7 +196,7 @@ From the plots, it seems that young voters seem to have the least turnout compar
 
 ## Interactive Plots on Voting and Registration Berween Age Groups
 
-```{r Overall Votes and Registration, echo=FALSE, message=FALSE, warning=FALSE}
+```{r Overall Votes and Registration, echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
 inputPanel(
   selectInput("plot_change", "Choose a plot:", 
               choices = list("Total Count" = 1, 
@@ -247,7 +270,7 @@ renderDataTable({
 
 ## Does Young Voter Turnout Drop With Race?
 
-```{r message=FALSE, warning=FALSE, include=FALSE}
+```{r message=FALSE, warning=FALSE, include=FALSE, fig.width=10, fig.fullwidth=TRUE}
 # Dataframe putting hist_df into a long format based on races
 race_df <- hist_df %>% filter(Status == "Voted")
 race_df <- melt(race_df, id.vars = c("Age", "Year"), 
@@ -260,7 +283,7 @@ race_df <- na.omit(race_df)
 
 Looking at race for 18-24 year old voters:
 
-```{r Plots for young voters by race, echo=FALSE, fig.align='center', message=FALSE, warning=FALSE}
+```{r Plots for young voters by race, echo=FALSE, fig.align='center', message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
 hist_df %>% 
   filter(Age == '18 to 24' & Status == "Voted") %>% 
   ggplot(aes(Year, White.Percent, group = Age)) +
@@ -325,7 +348,7 @@ race_df %>%
         plot.title = element_text(hjust = .5)) 
 ```
 
-```{r echo=FALSE, fig.align='center', message=FALSE, warning=FALSE}
+```{r echo=FALSE, fig.align='center', message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
 race_names <- c("White", "White (Non Hispanic)", 
                 "Black", "Asian", "Hispanic/Other")
 
@@ -379,13 +402,13 @@ summary(lm_fit) %>% pander
 
 Based on the results, (Put fitted model interpretations here). (Do we reject the null?)
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
 step(lm(percentage ~ race, data = lm_race), direction = "both", trace = 0)
 ```
 
 To evaluate the model, the stepwise algorithm was used in both directions and it concluded that the current model that included all races as the coefficients is the best to use.
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
 # TODO
 plot(lm_fit$residuals ~ lm_fit$fitted.values)
 abline(lm_fit, h = 0)
@@ -397,7 +420,7 @@ Based on a plot between residuals versus the fitted values however, there is a n
 
 What could happen for young voter turnout? To predict this, we created a time series, a vector of values specifically on a the total population who voted over the years.
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
 time_df <- hist_df %>% filter(Status == "Voted" & Age == "18 to 24")
 votes_vec <- time_df$Population.Percent
 votes_vec <- na.omit(votes_vec)
@@ -407,7 +430,7 @@ plot.ts(votes_ts)
 
 Then to create future prediction, we fitted a Holt-Winters forecasting model.
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
 fit <- HoltWinters(votes_ts, gamma = FALSE)
 plot(fit)
 pred <- forecast:::forecast.HoltWinters(fit, h = 5, lower = 0, upper = 100)
@@ -418,7 +441,7 @@ Based on the model, it seems that voter turnout for young people is staying roug
 
 ## Interactive Forecasting with HoltWinters Model of Young Voters
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
 inputPanel(
   numericInput("num", "Enter amount of years to make prediction", 
                value = 5, min = 1, max = 100)
