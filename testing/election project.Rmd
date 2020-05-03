@@ -175,7 +175,7 @@ ggplot(byrace) +
     group = group) +
   geom_line(size = 1) +
   scale_y_continuous(labels = scales::percent, limits = c(0, 1)) +
-  labs(x = "Year", y = "Turnout", title = "Election Turnout", color = "Age Group") +
+  labs(x = "Year", y = "Turnout", title = "Election Turnout", color = "Race/Ethnicity") +
   theme_minimal() +
   scale_color_viridis(discrete = TRUE) +
   facet_wrap(~type, scales = "free_x") +
@@ -211,7 +211,7 @@ ggplot(byedu) +
     group = edu_lvl) +
   geom_line(size = 1) +
   scale_y_continuous(labels = scales::percent, limits = c(0, 1)) +
-  labs(x = "Year", y = "Turnout", title = "Election Turnout", color = "Age Group") +
+  labs(x = "Year", y = "Turnout", title = "Election Turnout", color = "Education Level") +
   theme_minimal() +
   scale_color_viridis(discrete = TRUE) +
   facet_wrap(~type, scales = "free_x") +

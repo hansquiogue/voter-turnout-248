@@ -1,0 +1,218 @@
+---
+title: "party results and age/turnout"
+author: "Jackson Callaghan"
+date: "5/2/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(readxl)
+library(ggridges)
+library(scales)
+library(gridExtra)
+library(viridis)
+library(maps)
+library(fiftystater)
+```
+
+```{r}
+theme_set(theme_minimal())
+```
+
+```{r}
+# read in age demographics
+raw.byage <- read_excel(
+  "CPS Turnout Rates.xlsx",
+  sheet = "Age",
+  range = "A2:R6"
+)
+
+# pivot to tidy shape
+byage <- raw.byage %>% 
+  pivot_longer(cols = 2:length(raw.byage), names_to = "year", values_to = "turnout")
+colnames(byage)[1] = "age.group"
+# change types and mutate new type column
+byage$year <- as.numeric(byage$year)
+byage <- byage %>% mutate(type = ifelse(year %in% seq(1986, 2020, 4), "Midterm", "Presidential"))
+byage$type <- factor(byage$type, levels = c("Presidential", "Midterm"))
+```
+
+```{r}
+# read in age demographics
+raw.byedu <- read_excel(
+  "CPS Turnout Rates.xlsx",
+  sheet = "Education",
+  range = "A2:R6"
+)
+
+# pivot to tidy shape
+byedu <- raw.byedu %>% 
+  pivot_longer(cols = 2:length(raw.byedu), names_to = "year", values_to = "turnout")
+colnames(byedu)[1] = "edu_lvl"
+# change types and mutate new type column
+byedu$year <- as.numeric(byedu$year)
+byedu <- byedu %>% mutate(type = ifelse(year %in% seq(1986, 2020, 4), "Midterm", "Presidential"))
+byedu$type <- factor(byedu$type, levels = c("Presidential", "Midterm"))
+byedu$edu_lvl <- factor(byedu$edu_lvl, levels = c("Less Than High School", "High School Grad", "Some College to College Grad", "Post-Graduate"))
+```
+
+```{r}
+pres.results <- read_csv("1976-2016-president.csv")
+
+party.results <- pres.results %>% 
+      # full_join(select(sena.results, -district)) %>% 
+      # full_join(select(hous.results, -district)) %>% 
+      filter(writein == FALSE) %>% 
+      filter(year != 2018) %>% 
+      mutate(party = replace(party, party == "democratic-farmer-labor", "democrat")) %>% 
+      filter(party %in% c("democrat", "republican")) %>% 
+      select(-candidate) %>% 
+      pivot_wider(
+          names_from = party,
+          values_from = candidatevotes,
+          values_fill = list(democrat = 0, republican = 0)
+      ) %>% 
+      # filter(totalvotes != 1) %>% 
+      # party.results$democrat <- unlist(party.results$democrat, use.names = FALSE)
+      mutate(p.dem = democrat / totalvotes) %>% 
+      mutate(p.rep = republican / totalvotes) %>% 
+      mutate(partyscore = p.rep - p.dem)
+```
+
+```{r}
+test <- byage %>% 
+  full_join(party.results) %>% 
+  filter(year %in% seq(1988, 2016, 4))
+```
+
+```{r}
+
+```
+
+
+```{r}
+gen.turn <- read_excel(
+        "1980-2014 November General Election.xlsx",
+        skip = 1
+    )
+    
+    gen.turn.2016 = read_excel(
+        "2016 November General Election.xlsx",
+        skip = 1
+    )
+    
+    gen.turn <- gen.turn %>%
+        select(-(2:3), -c(5, 7, 8, 11), -(12:17)) 
+    
+    colnames(gen.turn) <- c("year", "region", "turnout", "ballots", "VEP")
+    gen.turn$region <- sapply(gen.turn$region, tolower)
+    gen.turn <- mutate(gen.turn, type = ifelse(year %in% seq(1980, 2020, 4), "Presidential", "Midterm"))
+    
+    gen.turn.2016 <- gen.turn.2016 %>%
+        select(-(2:3), -c(4, 6, 7, 10), -(11:17)) 
+    
+    colnames(gen.turn.2016) <- c("region", "turnout", "ballots", "VEP")
+    gen.turn.2016$region <- sapply(gen.turn.2016$region, tolower)
+    gen.turn.2016$year <- rep(2016, nrow(gen.turn.2016))
+    gen.turn.2016$type <- rep("Presidential", nrow(gen.turn.2016))
+    
+    gen.turn <- full_join(gen.turn, gen.turn.2016)
+    
+    states.turnout <- gen.turn %>% filter(region != "united states")
+    total.turnout <- gen.turn %>% filter(region == "united states")
+```
+
+```{r}
+party.results.mergeprep <- party.results %>% 
+  mutate(state = tolower(state)) %>% 
+  filter(year %in% seq(1980, 2016, 4))
+
+states.turnout.mergeprep <- states.turnout %>% 
+  filter(year %in% seq(1980, 2016, 4)) %>% 
+  rename(state = region)
+
+test2 <- full_join(party.results.mergeprep, states.turnout.mergeprep)
+```
+
+```{r}
+test2 <- test2 %>% 
+  group_by(state) %>% 
+  summarize(mean_state_score = mean(partyscore)) %>% 
+  full_join(test2)
+  # mutate(state_mean_score = mean(filter(test2, state == .$state)$partyscore))
+  # filter(state == "alabama") %>%
+
+test2 %>% 
+  filter(mean_state_score > 0) %>% 
+  ggplot() +
+    aes(x = turnout, y = partyscore) +
+    geom_point() +
+    geom_smooth(method = "lm") +
+    facet_wrap(~state)
+```
+
+```{r}
+test2 %>% 
+  filter(year >= 2000) %>% 
+  ggplot() +
+    aes(x = turnout, y = partyscore) +
+    geom_point() +
+    geom_smooth(method = "lm")
+    # facet_wrap(~year)
+
+test2 %>% 
+  filter(year >= 2000) %>% 
+  ggplot() +
+    aes(x = turnout, y = partyscore) +
+    geom_point() +
+    geom_smooth(method = "lm") +
+    facet_wrap(~year)
+```
+
+greater turnout means more blue (since 2000)
+
+```{r}
+turn.res.2000 <- test2 %>% 
+  filter(year >= 2000)
+
+fit.turn.res <- lm(partyscore ~ turnout, data = turn.res.2000)
+
+summary(fit.turn.res)
+plot(fit.turn.res)
+```
+
+
+```{r}
+country.mean <- party.results %>% 
+  select(year, state, partyscore) %>% 
+  mutate(state = tolower(state)) %>% 
+  pivot_wider(names_from = state, values_from = partyscore) %>% 
+  mutate(country_mean = rowMeans(select(., alabama:`wyoming`))) %>% 
+  filter(year %in% seq(1988, 2016, 4)) %>% 
+  select(year, country_mean) %>% 
+  full_join(filter(byage, year %in% seq(1988, 2016, 4))) %>% 
+  pivot_wider(names_from = age.group, values_from = turnout)
+```
+
+```{r}
+country.mean %>% 
+  ggplot() +
+    aes(x = `18-29`, y = country_mean) +
+    geom_point() +
+    geom_smooth(method = "lm")
+```
+
+so far: assumption tests show a linear model is barely appropriate, and it's not statistically significant.
+
+```{r}
+fit.age.res <- lm(country_mean ~ `18-29`, data = country.mean)
+
+plot(fit.age.res)
+summary(fit.age.res)
+```
+
