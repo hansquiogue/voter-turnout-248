@@ -361,11 +361,12 @@ race_df %>%
   ggtitle("Mean Votes of Young Voters by Race") +
   xlab("Races") +
   scale_x_discrete(labels = race_names) + 
-  scale_fill_viridis(discrete = TRUE, labels = race_names) +
+  scale_fill_viridis(discrete = TRUE, labels = race_names)
 
 race_df %>% 
   filter(Year == "2018" & Age != "Total") %>% 
-  ggplot(aes(variable, value, fill = variable)) +
+  ggplot() +
+  aes(variable, value, fill = variable) +
   geom_bar(stat = "identity") +
   ggtitle("Voting Percents of Young People by Race") +
   xlab("Races") +
@@ -373,7 +374,7 @@ race_df %>%
   facet_wrap(~Age) +
   scale_x_discrete(labels = race_names) +
   theme_minimal() +
-  labs(variable = "Races") +
+  labs(fill = "Races") +
   scale_fill_viridis(discrete = TRUE, labels = race_names) +
   theme(axis.text.x = element_blank(),
         plot.title = element_text(hjust = .5)) 
