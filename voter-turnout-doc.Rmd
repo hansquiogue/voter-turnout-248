@@ -153,7 +153,8 @@ hist_df %>%
     xlab("Years") + 
     scale_x_discrete(labels = years_label) +
     scale_color_viridis(discrete = TRUE) +
-    theme(plot.title = element_text(hjust = .5))
+    theme(plot.title = element_text(hjust = .5)) +
+    facet_wrap(~election.type)
 
 gap <- hist_df %>% 
   filter(Status == "Voted" & Age == "Total" & (Year == "1964" | Year == "2018")) %>% 
@@ -171,20 +172,21 @@ Based on the plots above, overall voter turnout has steadily increased over the 
 
 ```{r echo=FALSE, fig.align='center', message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
 plot_title <- paste("Age Groups that Voted in the U.S. (1964-2018)")
-count_label <- paste("Total Voted Count (In Thousands)")
+count_label <- paste("Percent Eligible Population Voted")
 
 hist_df %>% 
   filter(Status == "Voted" & Age != "Total") %>% 
-  mutate(test = (Population.Count * Population.Percent) / 100) %>% 
+  # mutate(test = (Population.Count * Population.Percent) / 100) %>% 
   ggplot() +
-  aes(Year, test, group = Age, color = Age) + 
+  aes(Year, Population.Percent, group = Age, color = Age) + 
   geom_point() + geom_line() + 
   ggtitle(plot_title) +
   ylab(count_label) + 
   xlab("Years") + 
   scale_color_viridis(discrete = TRUE) +
   scale_x_discrete(labels = years_label) +
-  theme(plot.title = element_text(hjust = .5))
+  theme(plot.title = element_text(hjust = .5)) +
+  facet_wrap(~election.type)
 
 hist_df %>%
   filter(Status == "Voted" & Age != 'Total') %>% 
