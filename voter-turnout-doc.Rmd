@@ -216,9 +216,9 @@ inputPanel(
                               "Percentage" = 2),
               selected = 1),
   checkboxGroupInput("hist_ages", "Choose an age group:",
-                      choices = list("Total" = 1,"Young" = 2,
-                                     "Adult" = 3,"Mid Age" = 4,
-                                     "Elderly" = 5),
+                      choices = list("Total" = 1,"18 - 24 yrs" = 2,
+                                     "25 - 44 yrs" = 3,"45 - 64 yrs" = 4,
+                                     "65+ yrs" = 5),
                       selected = c(1, 2, 3, 4, 5)),
   radioButtons("hist_status", "Choose voting status:",
                choices = list("Voted" = 1, "Registered" = 2),
@@ -278,7 +278,7 @@ renderDataTable({
 })
 ```
 
-## Young Voter Turnout and Different Race Groups
+## Voter Turnout and Different Race Groups
 
 ```{r message=FALSE, warning=FALSE, include=FALSE, fig.width=10, fig.fullwidth=TRUE}
 # Dataframe putting hist_df into a long format based on races
@@ -291,7 +291,7 @@ race_df <- melt(race_df, id.vars = c("Age", "Year"),
 race_df <- na.omit(race_df)
 ```
 
-Could race be a factor in low turnout for young voters?
+Could race be a factor in low turnout?
 
 ```{r Plots for young voters by race, echo=FALSE, fig.align='center', message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
 race_names <- c("White", "White (Non Hispanic)", 
@@ -314,15 +314,69 @@ race_df %>%
   ggplot(aes(Year, value, group = variable, color = variable)) +
   geom_point() + geom_line() +
   facet_wrap(~Age) +
-  ggtitle("Total Voters and Race") +
+  ggtitle("Voters of Different Age Groups and Race") +
   ylab("Voting Percentage") +
   xlab("Years (1964-2018)") +
   labs(color = "Races") +
   scale_color_viridis(discrete = TRUE, labels = race_names) +
   theme_minimal() +
   theme(axis.text.x = element_blank(),
+        plot.title = element_text(hjust = .5))
+```
+
+It seems that asians and hispanics (and other race groups) have the least voter turnout in all age groups compared to other races. One noteworthy observation is that asians have the least number of observations over the years, which could be a potential reason on the group's low percentage numbers, and hence, something to account for.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
+race_df %>% 
+  filter(Age == "Total") %>% 
+  ggplot() +
+  aes(variable, value, fill = variable) +
+  geom_boxplot() +
+  ggtitle("Votes of Total Voters by Race") +
+  xlab("Races") +
+  labs(fill = "Races") +
+  scale_fill_viridis(discrete = TRUE, labels = race_names) +
+  scale_x_discrete(labels = race_names) + 
+  theme(plot.title = element_text(hjust = .5)) 
+
+race_df %>% 
+  filter(Year == "2018" & Age != "Total") %>% 
+  ggplot() +
+  aes(variable, value, fill = variable) +
+  geom_bar(stat = "identity") +
+  ggtitle("Voting Percents of Voters by Age and Race") +
+  xlab("Races") +
+  ylab("Voting Percentages") +
+  facet_wrap(~Age) +
+  scale_x_discrete(labels = race_names) +
+  theme_minimal() +
+  labs(fill = "Races") +
+  scale_fill_viridis(discrete = TRUE, labels = race_names) +
+  theme(axis.text.x = element_blank(),
         plot.title = element_text(hjust = .5)) 
 
+race_table <- race_df
+race_table <- na.omit(race_table)
+race_table$variable <- as.character(race_table$variable)
+race_table$variable[race_table$variable == "White.Percent"] <- "White"
+race_table$variable[race_table$variable == "White.Non.Hispanic.Percent"] <- "White (Non Hispanic)"
+race_table$variable[race_table$variable == "Black.Percent"] <- "Black"
+race_table$variable[race_table$variable == "Asian.Percent"] <- "Asian"
+race_table$variable[race_table$variable == "Hispanic.Other.Percent"] <- "Hispanic or Other"
+race_table$variable <- as.factor(race_table$variable)
+
+race_one <- race_table %>% 
+  filter(Age == "Total") %>% 
+  group_by(variable) %>% 
+  summarize(`Mean of Age Groups` = mean(value)) %>% 
+  rename(`Race Groups` = variable)
+
+datatable(race_one)
+```
+
+When looking at the average total percentage across all race groups, asians and hispanics (and other race groups) approximately have a 25% voting average from 1964 to 2018. Compared to other race groups, there mean voting percentages are around 50%. 
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
 # Young People and Race
 race_df %>% 
   filter(Age == '18 to 24') %>% 
@@ -337,7 +391,7 @@ race_df %>%
   theme(plot.title = element_text(hjust = .5))
 
 # Young Voters and Race Facetted
-race_df %>% 
+race_table %>% 
   filter(Age == '18 to 24') %>% 
   ggplot(aes(Year, value, group = Age, color = variable)) +
   geom_point() + geom_line() +
@@ -350,44 +404,24 @@ race_df %>%
   theme_minimal() +
   theme(axis.text.x = element_blank(),
         plot.title = element_text(hjust = .5)) 
+```
 
+Looking specifically at young voters (18 to 24 year olds) and the different race demographics, the same applies; asians and hispanics (and other race groups) have a lower voting percentage compared to other race groups.  
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
 race_df %>% 
   filter(Age == "18 to 24") %>% 
   group_by(variable) %>%
-  summarize(`Vote Count` = mean(value)) %>% 
+  summarize(`Vote Percentage` = mean(value)) %>% 
   ggplot() +
-  aes(variable, `Vote Count`, fill = variable) +
+  aes(variable, `Vote Percentage`, fill = variable) +
   geom_bar(stat = "identity") +
   ggtitle("Mean Votes of Young Voters by Race") +
+  labs(fill = "Races") +
   xlab("Races") +
   scale_x_discrete(labels = race_names) + 
-  scale_fill_viridis(discrete = TRUE, labels = race_names)
-
-race_df %>% 
-  filter(Year == "2018" & Age != "Total") %>% 
-  ggplot() +
-  aes(variable, value, fill = variable) +
-  geom_bar(stat = "identity") +
-  ggtitle("Voting Percents of Young People by Race") +
-  xlab("Races") +
-  ylab("Voting Percentages") +
-  facet_wrap(~Age) +
-  scale_x_discrete(labels = race_names) +
-  theme_minimal() +
-  labs(fill = "Races") +
-  scale_fill_viridis(discrete = TRUE, labels = race_names) +
-  theme(axis.text.x = element_blank(),
-        plot.title = element_text(hjust = .5)) 
-
-race_df %>% 
-  filter(Age == "Total") %>% 
-  ggplot() +
-  aes(variable, value, fill = variable) +
-  geom_boxplot() +
-  ggtitle("Votes of Total Voters by Race") +
-  xlab("Races") +
-  scale_fill_viridis(discrete = TRUE, labels = race_names) +
-  scale_x_discrete(labels = race_names)
+  scale_fill_viridis(discrete = TRUE, labels = race_names) + 
+  theme(plot.title = element_text(hjust = .5)) 
 
 race_df %>% 
   filter(Age == "18 to 24") %>% 
@@ -396,24 +430,24 @@ race_df %>%
   geom_boxplot() +
   ggtitle("Votes of Young Voters by Race") +
   xlab("Races") +
-  scale_fill_viridis(discrete = TRUE) +
-  scale_x_discrete(labels = race_names)
+  ylab("Vote Percentage") +
+  labs(fill = "Races") +
+  scale_fill_viridis(discrete = TRUE, labels = race_names) +
+  scale_x_discrete(labels = race_names) + 
+  theme(plot.title = element_text(hjust = .5)) 
 
-# TODO Summary statistics of race groups
+race_two <- race_table %>% 
+  filter(Age == "18 to 24") %>% 
+  group_by(variable) %>% 
+  summarize(`Mean of Age Groups` = mean(value)) %>% 
+  rename(`Race Groups` = variable) 
 
-# race_table <- race_df
-# race_table <- na.omit(race_table)
-# race_table %>% 
-#  filter(Age == "18 to 24" & Age == "Total") %>% 
-#  group_by(variable) %>% 
-#  summarize(`Mean of Age Groups` = mean(value)) %>% 
-#  rename(`Race Groups` = variable) %>% 
-#  select(Year, Age, `Race Groups`)
+datatable(race_two)
 ```
 
-Based on the plots above (Summary stats) Below is interactive.
+Unsurprisingly, based on the young voters and race, the mean voting percentage between races is a lot lower compared to the total percentages on races and total turnout. Asians and hispanics (and other races), again, have the lowest turnout with approximately 15% average voting percentage. For some particular reason, asians and hispanics (and other races), have lower turnout compared to other race groups and even lower for young voter data. Below are interative plots on voter turnout and race groups to further explore the topic.
 
-## Interactive Plots on Voting Turnout and Race Groups
+## Interactive Plots on Voter Turnout and Race Groups
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
 race_val_names <- c("White.Percent", "White.Non.Hispanic.Percent",
@@ -490,14 +524,15 @@ renderDataTable({
 
 ```
 
-## Race Testing - Multiple Linear Regression
+## Race Group Testing - Multiple Linear Regression
 
-Based on the boxplot, it seems that young asians and hispanics (or other races) vote the least compared to other races. Could we predict these two racesCould we make predictions based on race and young voters? We can build and fit a multiple linear regression model, with different races as predictor variables and young voting percentage as the outcome variable, to test if there is no significant prediction of young voters by different race groups.
+Based on the plots, it seems that overall and specifically young asians and hispanics (or other races) vote the least compared to other races. Could specific races, such as asians or hispanics, have affect voter turnout? Could we make predictions based on race and young voters? We can build and fit a multiple linear regression model, with different races as predictor variables and young voting percentage as the outcome variable, to test if there are no significant predictions of young voters by different race groups.
 
-We can conduct a formal F test using ANOVA to compare our specified model we want to fit to another with no independent variables.
+We conducted a formal F test using ANOVA to compare our specified model we want to fit to another with no independent variables.
 
 - The null hypothesis states that the model with no independent variables fits the data as well as your model
-- The alternative hypothesis says that your model fits the data better 
+
+- The alternative hypothesis says that our model fits the data better 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
 # Cleaning up race values
@@ -512,7 +547,6 @@ lm_race$variable <- as.factor(lm_race$variable)
 lm_race <- lm_race %>% rename(race = variable) %>% rename(percentage = value)
 
 summary(aov(percentage ~ race, data = lm_race)) %>% pander
-
 ```
 
 Since the p-value is significantly less than the specified significance level of .05, we reject the null hypothesis. There is statistical evidence that our model fits the data better. Hence, we could attempt fitting a multiple linear regression model. 
@@ -520,49 +554,62 @@ Since the p-value is significantly less than the specified significance level of
 ### Fitting the model
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
+plot(percentage ~ race, data = lm_race)
+
 lm_fit <- lm(percentage ~ race, data = lm_race)
 summary(lm_fit) %>% pander
 ```
 
-Based on the results, since none of the coefficients were equal to 0, the races are statistically significant.
+Based on the results, since none of the coefficients were equal to 0, the race groups are statistically significant. 
 
-Interpretations we could make based on our hypothesis:
+Some interpretations we could make based on the model:
 
-- If an indivual was hispanic (or another race), the approximate voting percentage would be .47%
+- The approximate voting percentage would increase by 16.162% for young asians
 
-- If an indivual was asian, the approximate voting percentage would be 16.162%
+- The approximate voting percentage would increase by 13.481% for young blacks
 
-.. and so on
+- The approximate voting percentage would increase by .47% for young hispanics or other races 
 
-Comparing all the races together, it seems that they all have similar voting percentage outcomes, with the exception of hispanics (or other races). Due to the low R squared and adjusted R squared values however, it seems that the current model could be somewhat unreliable.  
+- The approximate voting percentage would increase by 16.796% for young whites
 
-```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
-step(lm(percentage ~ race, data = lm_race), direction = "both", trace = 0)
+- The approximate voting percentage would increase by 16% for young whites that are not hispanic
+
+Comparing all the races together, it seems that they all have similar voting percentage outcomes, with the exception of hispanics (or other races). In short, regardless of one's race, voting ncreases the voting percentage of one's race, which makes sense hypothetically. However, certain race groups, such as hispanics seem to increase slower compared to other races. Due to the low R squared and adjusted R squared values however, it seems that the current model has a  higher amount of unexplainable variability. The p-value for the coefficient with hispanics or other races is also very high, so interpreting the specified race group is questionable. Regardless, we should evaluate and check the performance of the current model. 
+
+```{r fig.fullwidth=TRUE, fig.width=10, message=FALSE, warning=FALSE, include=FALSE}
+step(lm(percentage ~ race, data = lm_race), direction = "both", trace = 0) 
 ```
 
-To evaluate the model, the stepwise algorithm was used in both directions and it concluded that the current model that included all races as the coefficients is the best to use.
+To evaluate the model, the stepwise algorithm was used in both directions and it concluded that the current model that included all races as the coefficients is the best to use. Since no other models could be used to compare different mean squared errors with the current model, no evaluation results or other models were shown.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
-# TODO
-plot(lm_fit$residuals ~ lm_fit$fitted.values)
-abline(lm_fit, h = 0)
+ggplot(data = lm_fit) +
+  aes(lm_fit$fitted.values, lm_fit$residuals) +
+  geom_point() + 
+  geom_hline(yintercept = 0, color = "red", linetype = "dotted") +
+  ggtitle("Residuals vs Fitted Values Plot") +
+  ylab("Residuals") +
+  xlab("Fitted Values") +
+  theme(plot.title = element_text(hjust = .5)) 
 ```
 
-Based on a plot between residuals versus the fitted values however, there is a noticable pattern; a multiple linear regression model would probably not be the best model to use for prediction with race and young voters. More tests should be performed. 
+We also checked the see how the model held based on a plot between residuals versus the fitted values. Unfortunately, there is a noticable pattern; a multiple linear regression model would probably not be the best model to use for prediction with race and young voters since the errors seem to be dependent on each other. In short, the current model is not accurate.
 
-## The Future
+## The Future and Young Voter Turnout
 
-What could happen for young voter turnout? To predict this, we created a time series, a vector of values specifically on a the total population who voted over the years.
+What could happen for young voter turnout? To predict this, we created a time series, a vector of values specifically on a the total population of people 18 to 24 years who voted over the years.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
 time_df <- hist_df %>% filter(Status == "Voted" & Age == "18 to 24")
 votes_vec <- time_df$Population.Percent
 votes_vec <- na.omit(votes_vec)
 votes_ts <- ts(votes_vec, frequency = .5, start = c(1964, 1), end = c(2018, 1))
-plot.ts(votes_ts)
+plot.ts(votes_ts, 
+        main = "Time Series of Young Voting Percentage",
+        ylab = "Voting Percentage")
 ```
 
-Then to create future prediction, we fitted a Holt-Winters forecasting model.
+Then to create future predictions for later years, we fitted a Holt-Winters forecasting model.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
 fit <- HoltWinters(votes_ts, gamma = FALSE)
@@ -571,18 +618,18 @@ pred <- forecast:::forecast.HoltWinters(fit, h = 5, lower = 0, upper = 100)
 plot(pred)
 ```
 
-Based on the model, it seems that voter turnout for young people is staying roughly the same.
+Based on the model, it seems that voter turnout for young people is staying roughly constant, but slowly increasing over time. To explore further years, an interactive application is shown below.
 
 ## Interactive Forecasting with HoltWinters Model of Young Voters
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
 inputPanel(
   numericInput("num", "Enter amount of years to make prediction", 
-               value = 5, min = 1, max = 100)
+               value = 10, min = 1, max = 100)
   )
 
 renderPlot({
-  pred <- forecast:::forecast.HoltWinters(fit, h = input$num[1], lower = 0, upper = 100)
+  pred <- forecast:::forecast.HoltWinters(fit, h = (input$num[1]/2), lower = 0, upper = 100)
   plot(pred)
 })
 ```
