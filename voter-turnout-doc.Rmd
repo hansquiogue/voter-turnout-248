@@ -90,10 +90,31 @@ hist_df <- temp_df[1:279, ]
 
 hist_df$Age <- as.factor(hist_df$Age)
 hist_df$Status <- as.factor(hist_df$Status)
-hist_df <- mutate(hist_df, election.type = ifelse(Year %in% seq(1964, 2020, 4), "Presidential", "Midterm")) 
+hist_df <- mutate(hist_df, election.type = ifelse(Year %in% seq(1964, 2020, 4), 
+                                                  "Presidential", "Midterm")) 
 ```
 
-TODO (Intro stuff here): "A description of what you project is about and an overview of what you did. Include the main learning goal or research question." Voter turnout intro stuff blah blah
+## Project Description
+
+This project will be focused on how voter turnout has affected the outcomes of United States elections using visualizations and some aggregate statistics. Specifically, we wanted to look at how turnout breaks down in terms of age. Low turnout of young voters is a major problem in America, and is typically attributed to a number of factors. In this project, we explored voter turnout data to see how the young vote affects election outcomes. The result is this html-knitted markdown file with embedded Shiny applications detailing our question, methods, and findings alongside interactive exploratory and more question-focused visualizations, and aggregate statistics. 
+
+The main R libraries we used for this project were tidyverse, to wrangle and visualize the data, and Shiny, which made all of our plots interactive. Tidyverse includes ggplot2 and ensured that our visualizations were well refined while Shiny enhanced the plots overall for users by making them dynamic. Viridis is package that includes multiple color pallete and we used the library to make our plots consistent with a constant color scheme. Other packages we used to provide more interesting and informative plots and statistical tests were pander, forecast, fiftstarter, DT, fiftystarter, and many others.
+
+The data sources we used were from the United States Census and ..
+
+- Census: https://www.census.gov/topics/public-sector/voting.html
+
+- 
+
+## Project Summary 
+
+- (Not sure if we should put in beginning here or at the end as conclussion)
+
+"Summary: This is a summary of your process. State your conclusions, and or a summary of what you found, what was challenging or what worked well. Mentioned any surprises if any."
+
+## Voter Turnout Throughout the Years
+
+Voter turnout can be described as the number of people who vote in any election. How big of a problem is turnout in the United States?
 
 ```{r echo=FALSE, fig.align='center', message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
 years_label <- ggplot2:::interleave(seq(1964,2018,4), "")
@@ -103,10 +124,10 @@ hist_df %>%
   mutate(voted_count = (Population.Count * Population.Percent) / 100) %>% 
   ggplot() +
   aes(x = Year, group = Age) +
-     geom_point(aes(y = Population.Count, color = "Eligible Population")) +
-     geom_line(aes(y = Population.Count, color = "Eligible Population")) +
      geom_point(aes(y = voted_count, color = "Total Vote Count")) +
      geom_line(aes(y = voted_count, color = "Total Vote Count")) +
+     geom_point(aes(y = Population.Count, color = "Eligible Population")) +
+     geom_line(aes(y = Population.Count, color = "Eligible Population")) +
      labs(
        title = "Comparison Between Eligible Voters and Vote Count",
        y = "Total Population Count (In Thousands)",
@@ -124,8 +145,8 @@ hist_df %>%
 hist_df %>% 
   filter(Status == "Voted" & Age == "Total") %>% 
   ggplot() +
-    aes(Year, Population.Percent, group = Age, color = Age) + 
-    geom_point() + geom_line() +
+    aes(Year, Population.Percent, group = Age) + 
+    geom_point(color = "Yellow") + geom_line(color = "Yellow") +
     ggtitle("Total Voting Percentage Over the Years") +
     ylab("Percentage") + 
     xlab("Years") + 
@@ -133,20 +154,19 @@ hist_df %>%
     scale_color_viridis(discrete = TRUE) +
     theme(plot.title = element_text(hjust = .5))
 
-hist_df %>% 
-  filter(Status == "Voted" & Age == "Total") %>% 
-  ggplot() +
-    aes(Year, Population.Percent, group = Age, color = Age) + 
-    geom_point() + geom_smooth() +
-    ggtitle("Total Voting Percentage Over the Years") +
-    ylab("Percentage") + 
-    xlab("Years") + 
-    scale_x_discrete(labels = years_label) +
-    scale_color_viridis(discrete = TRUE) +
-    theme(plot.title = element_text(hjust = .5))
+gap <- hist_df %>% 
+  filter(Status == "Voted" & Age == "Total" & (Year == "1964" | Year == "2018")) %>% 
+  mutate(voted = (Population.Count * Population.Percent) / 100) %>% 
+  select(Year, Population.Count, voted, Population.Percent) %>% 
+  rename(`Eligible Voters (In Thousands)` = Population.Count,
+         `Total Population that Voted (In Thousands)` = voted,
+         `Percentage of Eligible Population that Voted` = Population.Percent) %>% 
+  arrange(-desc(Year))
+
+datatable(gap)
 ```
 
-Based on the plots above, voter turnout has been steadily increasing over the years, but the gap between the total population who are eligible to vote and turnout are widening. The percentage of votes over the years has also dropped. Looking for the potential problems in voter turnout, we wanted to focus on different demographics, specifically age groups.
+Based on the plots above, overall voter turnout has steadily increased over the years, but the gap between the total population who are eligible to vote and turnout are widening. At 1964, out of 110 million people that are eligible to vote, only 77 million voted. In 2018, out of 250 million eligible voters, only 122 million voted. While the total number of votes is increasing over time, percentage wise, voting has dropped rom approximately 70% in 1964 to approximately 50% in the latest election year. Looking for the potential problems in decreasing number of voter turnout, we wanted to focus on different demographics, specifically age groups. 
 
 ```{r echo=FALSE, fig.align='center', message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
 plot_title <- paste("Age Groups that Voted in the U.S. (1964-2018)")
@@ -165,19 +185,6 @@ hist_df %>%
   scale_x_discrete(labels = years_label) +
   theme(plot.title = element_text(hjust = .5))
 
-hist_df %>% 
-  filter(Status == "Voted" & Age != "Total") %>% 
-  mutate(test = (Population.Count * Population.Percent) / 100) %>% 
-  ggplot() +
-  aes(Year, test, group = Age, color = Age) + 
-  geom_point() + geom_smooth() + 
-  ggtitle(plot_title) +
-  ylab(count_label) + 
-  xlab("Years") + 
-  scale_color_viridis(discrete = TRUE) +
-  scale_x_discrete(labels = years_label) +
-  theme(plot.title = element_text(hjust = .5))
-
 hist_df %>%
   filter(Status == "Voted" & Age != 'Total') %>% 
   ggplot() +
@@ -186,7 +193,7 @@ hist_df %>%
   ggtitle("Mean Voting Percentages Between Age Groups") + 
   ylab("Mean Voting Percentage") +
   xlab("Age Groups") + 
-  scale_color_viridis(discrete = TRUE) +
+  scale_fill_viridis(discrete = TRUE) +
   theme(plot.title = element_text(hjust = .5))
 
 mean_table <- hist_df %>% 
@@ -198,9 +205,9 @@ mean_table <- hist_df %>%
 datatable(mean_table)
 ```
 
-From the plots, it seems that young voters seem to have the least turnout compared to other groups. 
+From the plots, it seems that young voters have the least turnout compared to other age groups. Specifically, age groups between 18 to 24 have an voting average of 32% between 1964 to 2018. Other age groups have higher average voting percentages. What could cause such a phenomena? To explore factors that might contribute to low turnout in young people, we wanted to create some visuals and statistical tests relating to the group. To explore further with plots and statistics on voting and registration with different age groups, an interactive application is presented below.
 
-## Interactive Plots on Voting and Registration Berween Age Groups
+## Interactive Plots on Voting and Registration Between Age Groups
 
 ```{r Overall Votes and Registration, echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
 inputPanel(
@@ -215,10 +222,7 @@ inputPanel(
                       selected = c(1, 2, 3, 4, 5)),
   radioButtons("hist_status", "Choose voting status:",
                choices = list("Voted" = 1, "Registered" = 2),
-               selected = 1),
-  sliderInput("hist_years", "(TODO) Choose between years:",
-              min = 1964, max = 2018, value = c(1964, 2018), sep = ""
-  )
+               selected = 1)
 )
 
 renderPlot({
@@ -232,8 +236,6 @@ renderPlot({
   if(input$plot_change == 1) {
     plot_df %>% 
       filter(Status == vote_status[select_vote]) %>% 
-      # TODO Fix years slider
-      # filter(input$hist_years[1] <= Year & input$hist_years[2] >= Year) %>% 
       mutate(status_pop = (Population.Count * Population.Percent) / 100) %>% 
       ggplot() +
       aes(Year, status_pop, group = Age, color = Age) + 
@@ -276,7 +278,7 @@ renderDataTable({
 })
 ```
 
-## Does Young Voter Turnout Drop With Race?
+## Young Voter Turnout and Different Race Groups
 
 ```{r message=FALSE, warning=FALSE, include=FALSE, fig.width=10, fig.fullwidth=TRUE}
 # Dataframe putting hist_df into a long format based on races
@@ -289,76 +291,11 @@ race_df <- melt(race_df, id.vars = c("Age", "Year"),
 race_df <- na.omit(race_df)
 ```
 
-Looking at race for 18-24 year old voters:
+Could race be a factor in low turnout for young voters?
 
 ```{r Plots for young voters by race, echo=FALSE, fig.align='center', message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
-# TODO: Make plot colors consistant
-
-# Individual White plot
-hist_df %>% 
-  filter(Age == '18 to 24' & Status == "Voted") %>% 
-  ggplot(aes(Year, White.Percent, group = Age)) +
-  geom_point(color = "blue") + geom_smooth() +
-  ggtitle("White Voting Percentage Over Time") +
-  scale_x_discrete(labels = years_label) +
-  ylab("Voting Percentage") +
-  xlab("Years") +
-  theme(plot.title = element_text(hjust = .5))
-
-# Individual White Non Hispanic Plot
-hist_df %>% 
-  filter(Age == '18 to 24' & (as.character(Year) >= 1994) & Status == "Voted") %>% 
-  ggplot(aes(Year, White.Non.Hispanic.Percent, group = Age)) +
-  ggtitle("White (Non Hispanic) Voting Percentage Over Time") +
-  geom_point(color = "Red") + geom_smooth(color = "Red") +
-  ylab("Voting Percentage") +
-  xlab("Years") +
-  theme(plot.title = element_text(hjust = .5)) 
-
-# Individual Black Plot
-hist_df %>% 
-  filter(Age == '18 to 24' & Status == "Voted") %>% 
-  ggplot(aes(Year, Black.Percent, group = Age)) +
-  geom_point(color = "Green") + geom_smooth(color = "Green") +
-  ggtitle("Black Voting Percentage Over Time") +
-  ylab("Voting Percentage") + 
-  xlab("Years") +
-  scale_x_discrete(labels = years_label) +
-  theme(plot.title = element_text(hjust = .5))
-
-# Individual Asian Plot
-hist_df %>% 
-  filter(Age == '18 to 24' & Status == "Voted" & (as.character(Year) >= 1994)) %>% 
-  ggplot(aes(Year, Asian.Percent, group = Age)) +
-  geom_point(color = "Yellow") + geom_smooth(color = "Yellow") +
-  ggtitle("Asian Voting Percentage Over Time") +
-  ylab("Voting Percentage") + 
-  xlab("Years") +
-  theme(plot.title = element_text(hjust = .5))
-
-# Individual Hispanic/Other Plot
-hist_df %>% 
-  filter(Age == '18 to 24' & Status == "Voted" & (as.character(Year) >= 1974)) %>% 
-  ggplot(aes(Year, Hispanic.Other.Percent, group = Age)) +
-  geom_point(color = "Purple") + geom_smooth(color = "Purple") +
-  ggtitle("Hispanic/Other Voting Percentage Over Time") +
-  ylab("Voting Percentage") + 
-  xlab("Years") +
-  theme(plot.title = element_text(hjust = .5))
-
-# Total Race Plots 
-race_df %>% 
-  filter(Age == "Total") %>% 
-  ggplot(aes(Year, value, group = variable, color = variable)) +
-  geom_point() + geom_smooth(se = FALSE) +
-  ggtitle("Total Voters and Race") +
-  ylab("Voting Percentage") +
-  xlab("Years (1964-2018)") +
-  labs(color = "Races") +
-  scale_x_discrete(labels = years_label) +
-  scale_color_viridis(discrete = TRUE) +
-  theme(plot.title = element_text(hjust = .5))
-
+race_names <- c("White", "White (Non Hispanic)", 
+                "Black", "Asian", "Hispanic/Other")
 # Total Race Plots 
 race_df %>% 
   filter(Age == "Total") %>% 
@@ -369,23 +306,8 @@ race_df %>%
   xlab("Years (1964-2018)") +
   labs(color = "Races") +
   scale_x_discrete(labels = years_label) +
-  scale_color_viridis(discrete = TRUE) +
+  scale_color_viridis(discrete = TRUE, labels = race_names) +
   theme(plot.title = element_text(hjust = .5))
-
-
-# All Ages and Race Plots Facetted
-race_df %>% 
-  ggplot(aes(Year, value, group = variable, color = variable)) +
-  geom_point() + geom_smooth(se = FALSE) +
-  facet_wrap(~Age) +
-  ggtitle("Total Voters and Race") +
-  ylab("Voting Percentage") +
-  xlab("Years (1964-2018)") +
-  labs(color = "Races") +
-  scale_color_viridis(discrete = TRUE) +
-  theme_minimal() +
-  theme(axis.text.x = element_blank(),
-        plot.title = element_text(hjust = .5)) 
 
 # All Ages and Race Plots Facetted
 race_df %>% 
@@ -396,6 +318,7 @@ race_df %>%
   ylab("Voting Percentage") +
   xlab("Years (1964-2018)") +
   labs(color = "Races") +
+  scale_color_viridis(discrete = TRUE, labels = race_names) +
   theme_minimal() +
   theme(axis.text.x = element_blank(),
         plot.title = element_text(hjust = .5)) 
@@ -404,50 +327,97 @@ race_df %>%
 race_df %>% 
   filter(Age == '18 to 24') %>% 
   ggplot(aes(Year, value, group = variable, color = variable)) +
-  geom_point() + geom_smooth(se = FALSE) +
-  ggtitle("Young Voters and Race") +
-  ylab("Voting Percentage") +
-  xlab("Years (1964-2018)") +
-  labs(color = "Races") +
-  scale_x_discrete(labels = years_label) +
-  scale_color_viridis(discrete = TRUE) +
-  theme(plot.title = element_text(hjust = .5))
-
-race_df %>% 
-  filter(Age == '18 to 24') %>% 
-  ggplot(aes(Year, value, group = variable, color = variable)) +
   geom_point() + geom_line() +
   ggtitle("Young Voters and Race") +
   ylab("Voting Percentage") +
   xlab("Years (1964-2018)") +
   labs(color = "Races") +
   scale_x_discrete(labels = years_label) +
-  scale_color_viridis(discrete = TRUE) +
+  scale_color_viridis(discrete = TRUE, labels = race_names) +
   theme(plot.title = element_text(hjust = .5))
 
 # Young Voters and Race Facetted
 race_df %>% 
   filter(Age == '18 to 24') %>% 
   ggplot(aes(Year, value, group = Age, color = variable)) +
-  geom_point() + geom_smooth() +
+  geom_point() + geom_line() +
   facet_wrap(~variable) +
   ggtitle("Young Voters and Race") +
   ylab("Voting Percentage") +
   xlab("Years (1964-2018)") +
   labs(color = "Races") +
-  scale_color_viridis(discrete = TRUE) +
+  scale_color_viridis(discrete = TRUE, labels = race_names) +
   theme_minimal() +
   theme(axis.text.x = element_blank(),
         plot.title = element_text(hjust = .5)) 
+
+race_df %>% 
+  filter(Age == "18 to 24") %>% 
+  group_by(variable) %>%
+  summarize(`Vote Count` = mean(value)) %>% 
+  ggplot() +
+  aes(variable, `Vote Count`, fill = variable) +
+  geom_bar(stat = "identity") +
+  ggtitle("Mean Votes of Young Voters by Race") +
+  xlab("Races") +
+  scale_x_discrete(labels = race_names) + 
+  scale_fill_viridis(discrete = TRUE, labels = race_names) +
+
+race_df %>% 
+  filter(Year == "2018" & Age != "Total") %>% 
+  ggplot(aes(variable, value, fill = variable)) +
+  geom_bar(stat = "identity") +
+  ggtitle("Voting Percents of Young People by Race") +
+  xlab("Races") +
+  ylab("Voting Percentages") +
+  facet_wrap(~Age) +
+  scale_x_discrete(labels = race_names) +
+  theme_minimal() +
+  labs(variable = "Races") +
+  scale_fill_viridis(discrete = TRUE, labels = race_names) +
+  theme(axis.text.x = element_blank(),
+        plot.title = element_text(hjust = .5)) 
+
+race_df %>% 
+  filter(Age == "Total") %>% 
+  ggplot() +
+  aes(variable, value, fill = variable) +
+  geom_boxplot() +
+  ggtitle("Votes of Total Voters by Race") +
+  xlab("Races") +
+  scale_fill_viridis(discrete = TRUE, labels = race_names) +
+  scale_x_discrete(labels = race_names)
+
+race_df %>% 
+  filter(Age == "18 to 24") %>% 
+  ggplot() +
+  aes(variable, value, fill = variable) +
+  geom_boxplot() +
+  ggtitle("Votes of Young Voters by Race") +
+  xlab("Races") +
+  scale_fill_viridis(discrete = TRUE) +
+  scale_x_discrete(labels = race_names)
+
+# TODO Summary statistics of race groups
+
+# race_table <- race_df
+# race_table <- na.omit(race_table)
+# race_table %>% 
+#  filter(Age == "18 to 24" & Age == "Total") %>% 
+#  group_by(variable) %>% 
+#  summarize(`Mean of Age Groups` = mean(value)) %>% 
+#  rename(`Race Groups` = variable) %>% 
+#  select(Year, Age, `Race Groups`)
 ```
+
+Based on the plots above (Summary stats) Below is interactive.
+
+## Interactive Plots on Voting Turnout and Race Groups
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
 race_val_names <- c("White.Percent", "White.Non.Hispanic.Percent",
                     "Black.Percent", "Asian.Percent",
                     "Hispanic.Other.Percent")
-
-race_names <- c("White", "White (Non Hispanic)", 
-                "Black", "Asian", "Hispanic/Other")
 
 inputPanel(
   selectInput("plot_race", "Choose a plot:", 
@@ -517,55 +487,6 @@ renderDataTable({
            Percentages = value)
 })
 
-```
-
-```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
-race_df %>% 
-  filter(Age == "18 to 24") %>% 
-  group_by(variable) %>%
-  summarize(`Vote Count` = mean(value)) %>% 
-  ggplot() +
-  aes(variable, `Vote Count`, fill = variable) +
-  geom_bar(stat = "identity") +
-  ggtitle("Mean Votes of Young Voters by Race") +
-  xlab("Races") +
-  scale_x_discrete(labels = race_names) + 
-  scale_color_viridis(discrete = TRUE)
-
-race_df %>% 
-  filter(Year == "2018" & Age != "Total") %>% 
-  ggplot(aes(variable, value, fill = variable)) +
-  geom_bar(stat = "identity") +
-  ggtitle("Voting Percents of Young People by Race") +
-  xlab("Races") +
-  ylab("Voting Percentages") +
-  facet_wrap(~Age) +
-  scale_x_discrete(labels = race_names) +
-  theme_minimal() +
-  labs(variable = "Races") +
-  scale_color_viridis(discrete = TRUE) +
-  theme(axis.text.x = element_blank(),
-        plot.title = element_text(hjust = .5)) 
-
-race_df %>% 
-  filter(Age == "Total") %>% 
-  ggplot() +
-  aes(variable, value, fill = variable) +
-  geom_boxplot() +
-  ggtitle("Votes of Total Voters by Race") +
-  xlab("Races") +
-  scale_color_viridis(discrete = TRUE) +
-  scale_x_discrete(labels = race_names)
-
-race_df %>% 
-  filter(Age == "18 to 24") %>% 
-  ggplot() +
-  aes(variable, value, fill = variable) +
-  geom_boxplot() +
-  ggtitle("Votes of Young Voters by Race") +
-  xlab("Races") +
-  scale_color_viridis(discrete = TRUE) +
-  scale_x_discrete(labels = race_names)
 ```
 
 ## Race Testing - Multiple Linear Regression
