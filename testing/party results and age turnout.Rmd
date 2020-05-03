@@ -199,6 +199,8 @@ country.mean <- party.results %>%
   pivot_wider(names_from = age.group, values_from = turnout)
 ```
 
+scrap this
+
 ```{r}
 country.mean %>% 
   ggplot() +
@@ -214,5 +216,131 @@ fit.age.res <- lm(country_mean ~ `18-29`, data = country.mean)
 
 plot(fit.age.res)
 summary(fit.age.res)
+```
+
+
+```{r}
+# Uncleaned historical data
+hist_df <- read_xlsx("a1.xlsx", skip = 5, na = "NA")
+# Different voting category names to put into columns for the dataframe
+voting_col_names <- c("Year", "Population-Count", "Population-Percent",
+                      "Citizen-Percent", "White-Percent", "Citizen-White-Percent", 
+                      "White-Non-Hispanic-Percent", "Citizen-White-Non-Hispanic-Perc", 
+                      "Black-Percent", "Citizen-Black-Percent", "Asian-Percent",
+                      "Citizen-Asian-Percent", "Hispanic/Other-Percent",
+                      "Citizen-Hispanic/Other-Perc", "Male-Percent", "Female-Percent")
+# Assigns proper column names 
+colnames(hist_df) <- voting_col_names
+# Converts all columns to numeric
+hist_df[] <- lapply(hist_df, function(x) as.numeric(x))
+# Converts year column to a categorical value
+hist_df$Year <- as.factor(hist_df$Year)
+
+# 1964 to 2018 (Goes by every 2 year)
+years_length <- (2018 - 1964) / 2
+# List of proper age groups and voting status to put into dataframe
+age_groups <- c("Total", "18 to 24", "25 to 44", "45 to 64", "65+")
+vote_status <- c("Voted", "Registered")
+
+temp_df <- data.frame()
+
+# Integer values representing current index values of corresponding list
+curr_status <- 1
+curr_age <- 1
+
+# Loop to cleans up hist_df (Loop increments are added by 6 to account for missing columns)
+for(i in seq(1, nrow(hist_df), years_length + 6)) {
+  # Appends new rows to temp_df from subset of hist_df
+  if(i != 1) temp_df <- bind_rows(temp_df, hist_df[(i - 1):((i - 1) + years_length), ])
+  else temp_df <- bind_rows(temp_df, hist_df[i:(i + years_length), ])
+}
+
+# Appends new columns for age groups and voting statuses
+temp_df <- data.frame(append(temp_df, c(Age = age_groups[curr_status], 
+                                        Status = vote_status[curr_age]),
+                                        after = 0), stringsAsFactors = FALSE)
+
+temp_index = 1
+# Loop that corrects age group and voting status rows
+for(i in 1:(length(age_groups) * length(vote_status))) {
+  temp_df$Age[temp_index:(temp_index + years_length)] <- age_groups[curr_age]
+  temp_df$Status[temp_index:(temp_index + years_length)] <- vote_status[curr_status]
+  temp_index <- (temp_index + years_length) + 1
+  # Updates age group and voting status to match rows
+  if(curr_status == 1) curr_status = curr_status + 1
+  else {
+    curr_status = 1
+    curr_age = curr_age + 1
+  }
+}
+# Removes unnessary rows at the nd
+hist_df <- temp_df[1:279, ]
+
+hist_df$Age <- as.factor(hist_df$Age)
+hist_df$Status <- as.factor(hist_df$Status)
+hist_df <- mutate(hist_df, election.type = ifelse(Year %in% seq(1964, 2020, 4), "Presidential", "Midterm")) 
+```
+
+```{r}
+hist.age.turnout <- hist_df %>% 
+  filter(Year %in% seq(1964, 2016, 4)) %>% 
+  filter(Status == "Voted") %>% 
+  filter(Age != "Total") %>% 
+  filter(election.type == "Presidential") %>% 
+  rename(year = Year)
+
+hist.age.turnout.res <- party.results %>% 
+  select(year, state, partyscore) %>% 
+  mutate(state = tolower(state)) %>% 
+  pivot_wider(names_from = state, values_from = partyscore) %>% 
+  mutate(country_mean = rowMeans(select(., alabama:`wyoming`))) %>% 
+  filter(year %in% seq(1964, 2016, 4)) %>% 
+  select(year, country_mean) %>%
+  mutate(year = as.factor(year)) %>% 
+  full_join(hist.age.turnout) %>% 
+  mutate(year = as.numeric(year)) %>% 
+  filter(year >= 1976)
+```
+
+with ronald reagan:
+
+```{r}
+hist.age.turnout.res %>% 
+  # filter(!(year %in% c(1980, 1984))) %>% 
+  ggplot() +
+    aes(x = Population.Percent, y = country_mean, color = Age) +
+    geom_point() +
+    geom_smooth(method = "lm")
+```
+
+```{r}
+filter(hist.age.turnout.res, Age == "18 to 24")
+
+with.reagan <- lm(country_mean ~ Population.Percent, data = filter(hist.age.turnout.res, Age == "18 to 24"))
+plot(with.reagan)
+summary(with.reagan)
+```
+
+
+```{r}
+hist.age.turnout.res %>% 
+  filter(!(year %in% c(1980, 1984))) %>%
+  ggplot() +
+    aes(x = Population.Percent, y = country_mean, color = Age) +
+    geom_point() +
+    geom_smooth(method = "lm")
+```
+
+
+```{r}
+filter(hist.age.turnout.res, Age == "18 to 24")
+
+data.without.reagan <- hist.age.turnout.res %>% 
+  filter(!(year %in% c(1980, 1984))) %>%
+  filter(Age == "18 to 24")
+
+with.reagan <- lm(country_mean ~ Population.Percent, data = data.without.reagan)
+plot(with.reagan)
+summary(with.reagan)
 ```
 

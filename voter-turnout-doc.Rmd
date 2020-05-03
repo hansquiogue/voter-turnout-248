@@ -20,6 +20,11 @@ library(DT)
 library(reshape2)
 library(kableExtra)
 library(viridis)
+library(shiny)
+library(scales)
+library(gridExtra)
+library(fiftystater)
+library(mapproj)
 ```
 
 ```{r Set Theme, message=FALSE, warning=FALSE, include=FALSE}
@@ -660,3 +665,331 @@ renderPlot({
 })
 ```
 
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
+# keeping this as a template
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
+# read in age demographics
+raw.byage <- read_excel(
+  "CPS Turnout Rates.xlsx",
+  sheet = "Age",
+  range = "A2:R6"
+)
+
+# pivot to tidy shape
+byage <- raw.byage %>% 
+  pivot_longer(cols = 2:length(raw.byage), names_to = "year", values_to = "turnout")
+colnames(byage)[1] = "age.group"
+# change types and mutate new type column
+byage$year <- as.numeric(byage$year)
+byage <- byage %>% mutate(type = ifelse(year %in% seq(1986, 2020, 4), "Midterm", "Presidential"))
+byage$type <- factor(byage$type, levels = c("Presidential", "Midterm"))
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
+# read in age demographics
+raw.byedu <- read_excel(
+  "CPS Turnout Rates.xlsx",
+  sheet = "Education",
+  range = "A2:R6"
+)
+
+# pivot to tidy shape
+byedu <- raw.byedu %>% 
+  pivot_longer(cols = 2:length(raw.byedu), names_to = "year", values_to = "turnout")
+colnames(byedu)[1] = "edu_lvl"
+# change types and mutate new type column
+byedu$year <- as.numeric(byedu$year)
+byedu <- byedu %>% mutate(type = ifelse(year %in% seq(1986, 2020, 4), "Midterm", "Presidential"))
+byedu$type <- factor(byedu$type, levels = c("Presidential", "Midterm"))
+byedu$edu_lvl <- factor(byedu$edu_lvl, levels = c("Less Than High School", "High School Grad", "Some College to College Grad", "Post-Graduate"))
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
+raw.alltime <- read_csv("U.S. VEP Turnout 1789-Present - Statistics.csv")
+all.pres <- raw.alltime[, 1:2]
+all.midt <- raw.alltime[, 3:4]
+colnames(all.pres) <- c("year", "turnout")
+colnames(all.midt) <- c("year", "turnout")
+
+all.pres$type <- rep("Presidential", nrow(all.pres))
+all.midt$type <- rep("Midterm", nrow(all.midt))
+
+alltime <- full_join(all.pres, all.midt)
+alltime$type <- factor(alltime$type, levels = c("Presidential", "Midterm"))
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
+pres.results <- read_csv("1976-2016-president.csv")
+
+party.results <- pres.results %>% 
+      # full_join(select(sena.results, -district)) %>% 
+      # full_join(select(hous.results, -district)) %>% 
+      filter(writein == FALSE) %>% 
+      filter(year != 2018) %>% 
+      mutate(party = replace(party, party == "democratic-farmer-labor", "democrat")) %>% 
+      filter(party %in% c("democrat", "republican")) %>% 
+      select(-candidate) %>% 
+      pivot_wider(
+          names_from = party,
+          values_from = candidatevotes,
+          values_fill = list(democrat = 0, republican = 0)
+      ) %>% 
+      # filter(totalvotes != 1) %>% 
+      # party.results$democrat <- unlist(party.results$democrat, use.names = FALSE)
+      mutate(p.dem = democrat / totalvotes) %>% 
+      mutate(p.rep = republican / totalvotes) %>% 
+      mutate(partyscore = p.rep - p.dem)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
+gen.turn <- read_excel(
+        "1980-2014 November General Election.xlsx",
+        skip = 1
+    )
+    
+    gen.turn.2016 = read_excel(
+        "2016 November General Election.xlsx",
+        skip = 1
+    )
+    
+    gen.turn <- gen.turn %>%
+        select(-(2:3), -c(5, 7, 8, 11), -(12:17)) 
+    
+    colnames(gen.turn) <- c("year", "region", "turnout", "ballots", "VEP")
+    gen.turn$region <- sapply(gen.turn$region, tolower)
+    gen.turn <- mutate(gen.turn, type = ifelse(year %in% seq(1980, 2020, 4), "Presidential", "Midterm"))
+    
+    gen.turn.2016 <- gen.turn.2016 %>%
+        select(-(2:3), -c(4, 6, 7, 10), -(11:17)) 
+    
+    colnames(gen.turn.2016) <- c("region", "turnout", "ballots", "VEP")
+    gen.turn.2016$region <- sapply(gen.turn.2016$region, tolower)
+    gen.turn.2016$year <- rep(2016, nrow(gen.turn.2016))
+    gen.turn.2016$type <- rep("Presidential", nrow(gen.turn.2016))
+    
+    gen.turn <- full_join(gen.turn, gen.turn.2016)
+    
+    states.turnout <- gen.turn %>% filter(region != "united states")
+    total.turnout <- gen.turn %>% filter(region == "united states")
+    
+party.results.mergeprep <- party.results %>% 
+  mutate(state = tolower(state)) %>% 
+  filter(year %in% seq(1980, 2016, 4))
+
+states.turnout.mergeprep <- states.turnout %>% 
+  filter(year %in% seq(1980, 2016, 4)) %>% 
+  rename(state = region)
+
+test2 <- full_join(party.results.mergeprep, states.turnout.mergeprep)
+
+test2 <- test2 %>% 
+  group_by(state) %>% 
+  summarize(mean_state_score = mean(partyscore)) %>% 
+  full_join(test2)
+
+results <- read_csv("1976-2016-president.csv")
+    party.results <- results %>% 
+        mutate(party = replace(party, party == "democratic-farmer-labor", "democrat")) %>% 
+        filter(party %in% c("democrat", "republican")) %>% 
+        filter(writein == FALSE) %>% 
+        select(-candidate) %>% 
+        pivot_wider(
+            names_from = party,
+            values_from = candidatevotes
+        ) %>% 
+        mutate(p.dem = democrat / totalvotes) %>% 
+        mutate(p.rep = republican / totalvotes) %>% 
+        mutate(partyscore = p.rep - p.dem)
+```
+
+## A few plots
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
+ggplot(byage) +
+  aes(
+    x = as.factor(year), 
+    y = turnout, 
+    color = age.group, 
+    group = age.group) +
+  geom_line(size = 1) +
+  scale_y_continuous(labels = scales::percent, limits = c(0, 1)) +
+  labs(x = "Year", y = "Turnout", title = "Election Turnout", color = "Age Group") +
+  theme_minimal() +
+  scale_color_viridis(discrete = TRUE) +
+  facet_wrap(~type, scales = "free_x") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggplot(alltime) +
+  aes(
+    x = year, 
+    y = turnout, 
+    color = type, 
+    group = type) +
+  geom_line(size = 1) +
+  ylim(0, 100) +
+  labs(x = "Year", y = "Turnout", title = "Overall Election Turnout", color = "Election Type") +
+  theme_minimal() +
+  scale_color_viridis(discrete = TRUE) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+## Per-State turnout and party score
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+inputPanel(
+  sliderInput("year", "Year", 1980, 2016, 2016, step = 2, animate = TRUE, sep = ""),
+  checkboxInput(
+      "relscale",
+      "Use relative color scale",
+      TRUE
+  )
+)
+
+  splitLayout(
+  renderPlot({
+          
+          # merge <- states.turnout %>% 
+          #     filter(year == input$year)
+          # 
+          # merge <- inner_join(states_map, merge, by = "region")
+          
+          data("fifty_states")
+          
+          ret_plot <- states.turnout %>% 
+              filter(year == input$year) %>% 
+              ggplot(aes(map_id = region)) +
+                  geom_map(aes(fill = turnout), map = fifty_states, color = "white") +
+                  expand_limits(x = fifty_states$long, y = fifty_states$lat) +
+                  coord_map(projection = "albers", lat0=30, lat1=40) +
+                  labs(title = paste("Election Turnout Rates by State (", input$year, ")", sep = ""), fill = "Turnout") +
+                  theme_void() +
+                  fifty_states_inset_boxes() + 
+                  facet_wrap(~type)
+          
+          if (input$relscale) {
+              ret_plot + scale_fill_viridis(label = scales::percent)
+          }
+          else {
+              ret_plot + scale_fill_viridis(limits = c(0, 1), label = scales::percent)
+          }
+      }
+      # cache = diskCache(),
+      # cacheKeyExpr = input$year
+     ),
+  
+  renderPlot({
+          party.results %>% 
+              filter(year == input$year) %>% 
+              ggplot(aes(map_id = tolower(state))) + # map_id must be lowercase for whatever reason
+                  geom_map(aes(fill = partyscore), map = fifty_states, color = "lightgrey") +
+                  expand_limits(x = fifty_states$long, y = fifty_states$lat) +
+                  coord_map(projection = "albers", lat0=30, lat1=40) +
+                  labs(title = paste("Presidential Popular Vote Leaning by State (", input$year, ")", sep = ""), fill = "Party Score (-1 = 100% Democrat, 1 = 100% Republican)") +
+                  theme_void() +
+                  scale_fill_gradient2(
+                      low = "blue", 
+                      mid = "white", 
+                      high = "red", 
+                      limits = c(-1, 1),
+                      guide = guide_colorbar(title.position = "top")
+                  ) +
+                  theme(legend.position = "bottom", legend.box = "horizontal") +
+                  fifty_states_inset_boxes()
+      }
+      # cache = diskCache(),
+      # cacheKeyExpr = input$year
+      )
+)
+```
+
+
+
+## Testing overall turnout vs party score
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
+test2 %>% 
+  filter(year >= 2000) %>% 
+  ggplot() +
+    aes(x = turnout, y = partyscore) +
+    geom_point() +
+    geom_smooth(method = "lm")
+    # facet_wrap(~year)
+
+test2 %>% 
+  filter(year >= 2000) %>% 
+  ggplot() +
+    aes(x = turnout, y = partyscore) +
+    geom_point() +
+    geom_smooth(method = "lm") +
+    facet_wrap(~year)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
+turn.res.2000 <- test2 %>% 
+  filter(year >= 2000)
+
+fit.turn.res <- lm(partyscore ~ turnout, data = turn.res.2000)
+plot(fit.turn.res)
+summary(fit.turn.res)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
+hist.age.turnout <- hist_df %>% 
+  filter(Year %in% seq(1964, 2016, 4)) %>% 
+  filter(Status == "Voted") %>% 
+  filter(Age != "Total") %>% 
+  filter(election.type == "Presidential") %>% 
+  rename(year = Year)
+
+hist.age.turnout.res <- party.results %>% 
+  select(year, state, partyscore) %>% 
+  mutate(state = tolower(state)) %>% 
+  pivot_wider(names_from = state, values_from = partyscore) %>% 
+  mutate(country_mean = rowMeans(select(., alabama:`wyoming`))) %>% 
+  filter(year %in% seq(1964, 2016, 4)) %>% 
+  select(year, country_mean) %>%
+  mutate(year = as.factor(year)) %>% 
+  full_join(hist.age.turnout) %>% 
+  mutate(year = as.numeric(year)) %>% 
+  filter(year >= 1976)
+```
+
+with ronald reagan:
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
+hist.age.turnout.res %>% 
+  # filter(!(year %in% c(1980, 1984))) %>% 
+  ggplot() +
+    aes(x = Population.Percent, y = country_mean, color = Age) +
+    geom_point() +
+    geom_smooth(method = "lm")
+
+filter(hist.age.turnout.res, Age == "18 to 24")
+
+with.reagan <- lm(country_mean ~ Population.Percent, data = filter(hist.age.turnout.res, Age == "18 to 24"))
+plot(with.reagan)
+summary(with.reagan)
+```
+
+without ronald reagan:
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
+hist.age.turnout.res %>% 
+  filter(!(year %in% c(1980, 1984))) %>%
+  ggplot() +
+    aes(x = Population.Percent, y = country_mean, color = Age) +
+    geom_point() +
+    geom_smooth(method = "lm")
+
+filter(hist.age.turnout.res, Age == "18 to 24")
+
+data.without.reagan <- hist.age.turnout.res %>% 
+  filter(!(year %in% c(1980, 1984))) %>%
+  filter(Age == "18 to 24")
+
+with.reagan <- lm(country_mean ~ Population.Percent, data = data.without.reagan)
+plot(with.reagan)
+summary(with.reagan)
+```
