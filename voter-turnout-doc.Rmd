@@ -25,10 +25,11 @@ library(scales)
 library(gridExtra)
 library(fiftystater)
 library(mapproj)
+library(wesanderson)
 ```
 
 ```{r Set Theme, message=FALSE, warning=FALSE, include=FALSE}
-theme_set(theme_minimal())
+theme_set(theme_grey())
 ```
 
 ```{r Data Cleaning for Historical Data, message=FALSE, warning=FALSE, include=FALSE}
@@ -124,29 +125,29 @@ hist_df %>%
   mutate(voted_count = (Population.Count * Population.Percent) / 100) %>% 
   ggplot() +
   aes(x = Year, group = Age) +
-     geom_point(aes(y = voted_count, color = "Total Vote Count")) +
-     geom_line(aes(y = voted_count, color = "Total Vote Count")) +
-     geom_point(aes(y = Population.Count, color = "Eligible Population")) +
-     geom_line(aes(y = Population.Count, color = "Eligible Population")) +
-     labs(
-       title = "Comparison Between Eligible Voters and Vote Count",
-       y = "Total Population Count (In Thousands)",
-       x = "Years",
-       color = "Groups"
-       ) + 
-     scale_x_discrete(labels = years_label) +
-     theme(
-       plot.title = element_text(hjust = .5), 
-       axis.text.x = element_text(angle = 45, hjust = 1)
-       ) +
-     scale_color_viridis(discrete = TRUE) +
-     facet_wrap(~election.type)
+    geom_point(aes(y = voted_count, color = "Total Vote Count")) +
+    geom_line(aes(y = voted_count, color = "Total Vote Count")) +
+    geom_point(aes(y = Population.Count, color = "Eligible Population")) +
+    geom_line(aes(y = Population.Count, color = "Eligible Population")) +
+    labs(
+     title = "Comparison Between Eligible Voters and Vote Count",
+     y = "Total Population Count (In Thousands)",
+     x = "Years",
+     color = "Groups"
+     ) + 
+    scale_x_discrete(labels = years_label) +
+    theme(
+     plot.title = element_text(hjust = .5), 
+     axis.text.x = element_text(angle = 45, hjust = 1)
+     ) +
+    scale_color_viridis(discrete = TRUE) +
+    facet_wrap(~election.type)
 
 hist_df %>% 
   filter(Status == "Voted" & Age == "Total") %>% 
   ggplot() +
     aes(Year, Population.Percent, group = Age) + 
-    geom_point(color = "Yellow") + geom_line(color = "Yellow") +
+    geom_point(color = "Yellow2") + geom_line(color = "Yellow2") +
     ggtitle("Total Voting Percentage Over the Years") +
     ylab("Percentage") + 
     xlab("Years") + 
