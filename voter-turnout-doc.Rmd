@@ -568,8 +568,6 @@ Since the p-value is significantly less than the specified significance level of
 ### Fitting the model
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
-plot(percentage ~ race, data = lm_race)
-
 lm_fit <- lm(percentage ~ race, data = lm_race)
 summary(lm_fit) %>% pander
 ```
@@ -608,7 +606,6 @@ ggplot(data = lm_fit) +
 ```
 
 We also checked the see how the model held based on a plot between residuals versus the fitted values. Unfortunately, there is a noticable pattern; a multiple linear regression model would probably not be the best model to use for prediction with race and young voters since the errors seem to be dependent on each other. In short, the current model is not accurate.
-
 
 ## Young Voter Turnout and Election Results
 
@@ -689,8 +686,9 @@ grid.arrange(with.reagan.plot, without.reagan.plot, nrow = 1, top = "Country Mea
 filter(hist.age.turnout.res, Age == "18 to 24")
 
 with.reagan <- lm(country_mean ~ Population.Percent, data = filter(hist.age.turnout.res, Age == "18 to 24"))
-plot(with.reagan)
-summary(with.reagan)
+par(mfrow=c(2,2))
+kable(summary(with.reagan)$coefficients, format = 'markdown')
+kable(summary(with.reagan)$r.squared, format = 'markdown')
 ```
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
@@ -703,8 +701,10 @@ data.without.reagan <- hist.age.turnout.res %>%
   filter(Age == "18 to 24")
 
 with.reagan <- lm(country_mean ~ Population.Percent, data = data.without.reagan)
+par(mfrow=c(2,2))
 plot(with.reagan)
-summary(with.reagan)
+kable(summary(with.reagan)$coefficients, format = 'markdown')
+kable(summary(with.reagan)$r.squared, format = 'markdown')
 ```
 
 Unfortunately, the p-value for each was incredibly large, and so we fail to reject the null hypothesis (that there is no relationship). We can't say more than it's inconclusive. In the future we would like to get state-level data for age group turnout, which may provide a more conclusive answer.
