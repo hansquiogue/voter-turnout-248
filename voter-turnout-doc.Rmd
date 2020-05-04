@@ -101,17 +101,18 @@ This project will be focused on how voter turnout has affected the outcomes of U
 
 The main R libraries we used for this project were tidyverse, to wrangle and visualize the data, and Shiny, which made all of our plots interactive. Tidyverse includes ggplot2 and ensured that our visualizations were well refined while Shiny enhanced the plots overall for users by making them dynamic. Viridis is package that includes multiple color pallete and we used the library to make our plots consistent with a constant color scheme. Other packages we used to provide more interesting and informative plots and statistical tests were pander, forecast, fiftstarter, DT, fiftystarter, and many others.
 
-The data sources we used were from the United States Census and ..
+The data sources we used were the following:
 
 - Census: https://www.census.gov/topics/public-sector/voting.html
 
-- 
+- The United States Elections Project: http://www.electproject.org/home
+
+- The MIT Elections Lab: https://electionlab.mit.edu/data
 
 ## Project Summary 
 
-- (Not sure if we should put in beginning here or at the end as conclussion)
+We looked at a number of interactions in elections, and arrived at several interesting conclusions, as well as a few non-conclusions. As a result, our project became more of an exploratory report on some concepts in election turnout. Turnout rate to elections is lagging behind population, and so overall turnout rate has been on the decline or stagnant since 1964. Young voters aged 18-24 have the lowest turnout of any age group. Asian and Hispanic/other American voters have significantly lower turnout than other ethnicities, which holds true across different age groups. The turnout of young voters would appear affect the party leanings in votes by states, however we could not find a statistically significant conclusion supporting this. Finally, overall turnout would appear to affect the party leanings in votes by states, however this accounts for a very small portion of the variance in state party leanings. Each of these is explaining in greater detail below.
 
-"Summary: This is a summary of your process. State your conclusions, and or a summary of what you found, what was challenging or what worked well. Mentioned any surprises if any."
 
 ## Voter Turnout Throughout the Years
 
@@ -334,7 +335,7 @@ race_df %>%
   facet_wrap(~Age)
 ```
 
-It seems that asians and hispanics (and other race groups) have the least voter turnout in all age groups compared to other races. One noteworthy observation is that asians have the least number of observations over the years, which could be a potential reason on the group's low percentage numbers, and hence, something to account for.
+It seems that Asians and Hispanics/other have the least voter turnout in all age groups compared to other ethnicities. One noteworthy observation is that asians have the least number of observations over the years, which could be a potential reason on the group's low percentage numbers, and hence, something to account for.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
 race_df %>% 
@@ -458,7 +459,7 @@ race_two <- race_table %>%
 datatable(race_two)
 ```
 
-Unsurprisingly, based on the young voters and race, the mean voting percentage between races is a lot lower compared to the total percentages on races and total turnout. Asians and hispanics (and other races), again, have the lowest turnout with approximately 15% average voting percentage. For some particular reason, asians and hispanics (and other races), have lower turnout compared to other race groups and even lower for young voter data. Below are interative plots on voter turnout and race groups to further explore the topic.
+Unsurprisingly, based on the young voters and race, the mean voting percentage between races/ethnicities is a lot lower compared to the total percentages on races/ethnicities and total turnout. Asians and Hispanics/other, again, have the lowest turnout with approximately 15% average voting percentage. For some particular reason, Asians and Hispanics/other have lower turnout compared to other race groups and even lower for young voter data. Below are interative plots on voter turnout and races/ethnicities to further explore the topic.
 
 ## Interactive Plots on Voter Turnout and Race Groups
 
@@ -540,7 +541,7 @@ renderDataTable({
 
 ## Race Group Testing - Multiple Linear Regression
 
-Based on the plots, it seems that overall and specifically young asians and hispanics (or other races) vote the least compared to other races. Could specific races, such as asians or hispanics, have affect voter turnout? Could we make predictions based on race and young voters? We can build and fit a multiple linear regression model, with different races as predictor variables and young voting percentage as the outcome variable, to test if there are no significant predictions of young voters by different race groups.
+Based on the plots, it seems that overall and specifically young Asians and Hispanics/other vote the least compared to other races. Could specific races, such as Asians or Hispanics/other, have affect voter turnout? Could we make predictions based on race and young voters? We can build and fit a multiple linear regression model, with different races/ethinicities as predictor variables and young voting percentage as the outcome variable, to test if there are no significant predictions of young voters by different race groups.
 
 We conducted a formal F test using ANOVA to compare our specified model we want to fit to another with no independent variables.
 
@@ -580,19 +581,19 @@ Some interpretations we could make based on the model:
 
 - The approximate voting percentage would increase by 13.481% for young blacks
 
-- The approximate voting percentage would increase by .47% for young hispanics or other races 
+- The approximate voting percentage would increase by .47% for young hispanics/other
 
 - The approximate voting percentage would increase by 16.796% for young whites
 
 - The approximate voting percentage would increase by 16% for young whites that are not hispanic
 
-Comparing all the races together, it seems that they all have similar voting percentage outcomes, with the exception of hispanics (or other races). In short, regardless of one's race, voting ncreases the voting percentage of one's race, which makes sense hypothetically. However, certain race groups, such as hispanics seem to increase slower compared to other races. Due to the low R squared and adjusted R squared values however, it seems that the current model has a  higher amount of unexplainable variability. The p-value for the coefficient with hispanics or other races is also very high, so interpreting the specified race group is questionable. Regardless, we should evaluate and check the performance of the current model. 
+Comparing all the races/ethnicities together, it seems that they all have similar voting percentage outcomes, with the exception of hispanics/other. In short, regardless of one's race, voting ncreases the voting percentage of one's race, which makes sense hypothetically. However, certain race groups, such as hispanics seem to increase slower compared to other races/ethnicities. Due to the low R squared and adjusted R squared values however, it seems that the current model has a  higher amount of unexplainable variability. The p-value for the coefficient with hispanics/other is also very high, so interpreting the specified race group is questionable. Regardless, we should evaluate and check the performance of the current model. 
 
 ```{r fig.fullwidth=TRUE, fig.width=10, message=FALSE, warning=FALSE, include=FALSE}
 step(lm(percentage ~ race, data = lm_race), direction = "both", trace = 0) 
 ```
 
-To evaluate the model, the stepwise algorithm was used in both directions and it concluded that the current model that included all races as the coefficients is the best to use. Since no other models could be used to compare different mean squared errors with the current model, no evaluation results or other models were shown.
+To evaluate the model, the stepwise algorithm was used in both directions and it concluded that the current model that included all races/ethnicities as the coefficients is the best to use. Since no other models could be used to compare different mean squared errors with the current model, no evaluation results or other models were shown.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
 ggplot(data = lm_fit) +
@@ -683,7 +684,7 @@ without.reagan.plot <- hist.age.turnout.res %>%
 
 grid.arrange(with.reagan.plot, without.reagan.plot, nrow = 1, top = "Country Mean Party Score by Age Group")
 
-filter(hist.age.turnout.res, Age == "18 to 24")
+# filter(hist.age.turnout.res, Age == "18 to 24")
 
 with.reagan <- lm(country_mean ~ Population.Percent, data = filter(hist.age.turnout.res, Age == "18 to 24"))
 par(mfrow=c(2,2))
@@ -694,7 +695,7 @@ kable(summary(with.reagan)$r.squared, format = 'markdown')
 ```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
 
 
-filter(hist.age.turnout.res, Age == "18 to 24")
+# filter(hist.age.turnout.res, Age == "18 to 24")
 
 data.without.reagan <- hist.age.turnout.res %>% 
   filter(!(year %in% c(1980, 1984))) %>%
@@ -703,6 +704,13 @@ data.without.reagan <- hist.age.turnout.res %>%
 with.reagan <- lm(country_mean ~ Population.Percent, data = data.without.reagan)
 par(mfrow=c(2,2))
 plot(with.reagan)
+kable(summary(with.reagan)$coefficients, format = 'markdown')
+kable(summary(with.reagan)$r.squared, format = 'markdown')
+```
+
+We decided to fit a model to just young people as there are seemingly notable differences between age groups. Evaluating the appropriateness of a linear model we find some issues. Most important is that the data only barely appears to be linear, however this will be ignored as useful information may still be gained. Residuals appear to vary more or less evenly, while the residuals themselves are aproximately normally distributed. Each observation is independent enough for our purposes, however it must be noted that true and perfect independence is nearly impossible with the complex interactions between elections.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
 kable(summary(with.reagan)$coefficients, format = 'markdown')
 kable(summary(with.reagan)$r.squared, format = 'markdown')
 ```
@@ -967,8 +975,20 @@ turn.res.2000 <- test2 %>%
   filter(year >= 2000)
 
 fit.turn.res <- lm(partyscore ~ turnout, data = turn.res.2000)
+par(mfrow=c(2,2))
 plot(fit.turn.res)
-summary(fit.turn.res)
 ```
 
+Evaluating the model we find that the data does appear to be at least someone linear, with fairly evenly distributed residual variance, and fairly normal distribution of residuals, as shown above. Each observation is as independent as may be reasonable expected, however it must be noted that the outcomes of each vote is affected by the previous in manners which are difficult to trace. We conclude that a linear regression model is appropriate and of use.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
+kable(summary(fit.turn.res)$coefficients, format = 'markdown')
+kable(summary(fit.turn.res)$r.squared, format = 'markdown')
+```
+
+
 The result is a negative association (-0.5654) between percent turnout and party score, which implies that greater percent turnout pushes a state's overall vote toward the Democrat Party. This association is statistically significant, with a p-value of 0.00629 - we must reject the null hypothesis that there is no association.The Adjusted R-squared value is incredibly low at 0.0253, meaning that our model explains only about 2.5% of the variation in the data. This is likely due to the numerous factors beyond simple turnout which affect the party leanings of a given state, however it remains interesting that turnout is as significant as it is.
+
+## Conclusion
+
+As this was more of an exploratory report, a single conclusion cannot be reached. What our explorations have made clear, however, is that voter turnout is incredibly important to the outcomes of votes (as one might expect), and should be better encouraged. With the low turnout of Asian, Hispanic/other, and young populations, it is clear that better representation, awareness, and access need to occur for our democracy to better represent its populations.
