@@ -148,7 +148,7 @@ hist_df %>%
   ggplot() +
     aes(Year, Population.Percent, group = Age) + 
     geom_point(color = "Yellow2") + geom_line(color = "Yellow2") +
-    ggtitle("Total Voting Percentage Over the Years") +
+    ggtitle("Total Turnout Percentage Over the Years") +
     ylab("Percentage") + 
     xlab("Years") + 
     scale_x_discrete(labels = years_label) +
@@ -193,8 +193,8 @@ hist_df %>%
   ggplot() +
   aes(Age, Population.Percent, fill = Age) +
   geom_boxplot() +
-  ggtitle("Mean Voting Percentages Between Age Groups") + 
-  ylab("Mean Voting Percentage") +
+  ggtitle("Mean Tunrout Percentages by Age Group") + 
+  ylab("Mean Turnout Percentage") +
   xlab("Age Groups") + 
   scale_fill_viridis(discrete = TRUE) +
   theme(plot.title = element_text(hjust = .5))
@@ -208,7 +208,7 @@ mean_table <- hist_df %>%
 datatable(mean_table)
 ```
 
-From the plots, it seems that young voters have the least turnout compared to other age groups. Specifically, age groups between 18 to 24 have an voting average of 32% between 1964 to 2018. Other age groups have higher average voting percentages. What could cause such a phenomena? To explore factors that might contribute to low turnout in young people, we wanted to create some visuals and statistical tests relating to the group. To explore further with plots and statistics on voting and registration with different age groups, an interactive application is presented below.
+From the plots, it seems that young voters have the least turnout compared to other age groups. Specifically, eligible people between 18 and 24 years of age have an average of 32% turnout between 1964 to 2018. Other age groups have higher average turnout percentages. What could cause such a phenomena? To explore factors that might contribute to low turnout in young people, we wanted to create some visuals and statistical tests relating to the group. To explore further with plots and statistics on voting and registration with different age groups, an interactive application is presented below.
 
 ## Interactive Plots on Voting and Registration Between Age Groups
 
@@ -225,7 +225,8 @@ inputPanel(
                       selected = c(1, 2, 3, 4, 5)),
   radioButtons("hist_status", "Choose voting status:",
                choices = list("Voted" = 1, "Registered" = 2),
-               selected = 1)
+               selected = 1),
+  checkboxInput("split_type", "Split midterm/presidential", FALSE)
 )
 
 renderPlot({
@@ -237,33 +238,39 @@ renderPlot({
   select_vote <- as.numeric(input$hist_status)
   # Historical plot of either total count  on votes/registratiob
   if(input$plot_change == 1) {
-    plot_df %>% 
+    outplot <- plot_df %>% 
       filter(Status == vote_status[select_vote]) %>% 
       mutate(status_pop = (Population.Count * Population.Percent) / 100) %>% 
       ggplot() +
-      aes(Year, status_pop, group = Age, color = Age) + 
-      geom_point() + geom_line() + 
-      ggtitle(plot_title) +
-      ylab(count_label) + 
-      xlab("Years") + 
-      scale_x_discrete(labels = years_label) +
-      scale_color_viridis(discrete = TRUE) +
-      theme(plot.title = element_text(hjust = .5))
-  }
-  # Historical plot of either votes and registration data
-  else {
-      plot_df <- plot_df %>% filter(Status == vote_status[select_vote])
-      title_perc <- paste("Percentage Between Age Groups That", vote_status[select_vote])
-      # Historical plot
-      ggplot(data = plot_df) +
-        aes(Year, Population.Percent, group = Age, color = Age) + 
+        aes(Year, status_pop, group = Age, color = Age) + 
         geom_point() + geom_line() + 
-        ggtitle(title_perc) +
-        ylab("Percentage") + 
+        ggtitle(plot_title) +
+        ylab(count_label) + 
         xlab("Years") + 
         scale_x_discrete(labels = years_label) +
         scale_color_viridis(discrete = TRUE) +
         theme(plot.title = element_text(hjust = .5))
+  }
+  # Historical plot of either votes and registration data
+  else {
+      plot_df <- plot_df %>% filter(Status == vote_status[select_vote])
+      title_perc <- paste("Percentage Between Age Groups that", vote_status[select_vote])
+      # Historical plot
+      outplot <- ggplot(data = plot_df) +
+        aes(Year, Population.Percent, group = Age, color = Age) + 
+        geom_point() + geom_line() + 
+        ggtitle(title_perc) +
+        ylab("Turnout Percentage") + 
+        xlab("Years") + 
+        scale_x_discrete(labels = years_label) +
+        scale_color_viridis(discrete = TRUE) +
+        theme(plot.title = element_text(hjust = .5))
+  }
+  if (input$split_type) {
+    outplot + facet_wrap(~election.type)
+  }
+  else {
+    outplot
   }
 })
 
@@ -303,11 +310,11 @@ race_names <- c("White", "White (Non Hispanic)",
 race_df %>% 
   filter(Age == "Total") %>% 
   ggplot(aes(Year, value, group = variable, color = variable)) +
-  geom_point() + geom_line() +
-  ggtitle("Total Voters and Race") +
-  ylab("Voting Percentage") +
+  geom_point(alpha = 0.5) + geom_smooth(se = FALSE) +
+  ggtitle("Turnout Percentage and Race") +
+  ylab("Turnout Percentage") +
   xlab("Years (1964-2018)") +
-  labs(color = "Races") +
+  labs(color = "Race/Ethnicity") +
   scale_x_discrete(labels = years_label) +
   scale_color_viridis(discrete = TRUE, labels = race_names) +
   theme(plot.title = element_text(hjust = .5))
@@ -315,16 +322,16 @@ race_df %>%
 # All Ages and Race Plots Facetted
 race_df %>% 
   ggplot(aes(Year, value, group = variable, color = variable)) +
-  geom_point() + geom_line() +
-  facet_wrap(~Age) +
-  ggtitle("Voters of Different Age Groups and Race") +
-  ylab("Voting Percentage") +
+  geom_point(alpha = 0.5) + geom_smooth(se = FALSE) +
+  ggtitle("Percent Turnout of Different Age Groups and Race") +
+  ylab("Turnout Percentage") +
   xlab("Years (1964-2018)") +
-  labs(color = "Races") +
+  labs(color = "Race/Ethnicity") +
   scale_color_viridis(discrete = TRUE, labels = race_names) +
-  theme_minimal() +
+  # theme_minimal() +
   theme(axis.text.x = element_blank(),
-        plot.title = element_text(hjust = .5))
+        plot.title = element_text(hjust = .5)) +
+  facet_wrap(~Age)
 ```
 
 It seems that asians and hispanics (and other race groups) have the least voter turnout in all age groups compared to other races. One noteworthy observation is that asians have the least number of observations over the years, which could be a potential reason on the group's low percentage numbers, and hence, something to account for.
@@ -335,9 +342,10 @@ race_df %>%
   ggplot() +
   aes(variable, value, fill = variable) +
   geom_boxplot() +
-  ggtitle("Votes of Total Voters by Race") +
-  xlab("Races") +
-  labs(fill = "Races") +
+  ggtitle("Percent Turnout by Race") +
+  xlab("Race/Ethnicity") +
+  ylab("Turnout Percentage") +
+  labs(fill = "Race/Ethnicity") +
   scale_fill_viridis(discrete = TRUE, labels = race_names) +
   scale_x_discrete(labels = race_names) + 
   theme(plot.title = element_text(hjust = .5)) 
@@ -347,16 +355,17 @@ race_df %>%
   ggplot() +
   aes(variable, value, fill = variable) +
   geom_bar(stat = "identity") +
-  ggtitle("Voting Percents of Voters by Age and Race") +
-  xlab("Races") +
-  ylab("Voting Percentages") +
+  ggtitle("Percent Turnout by Age and Race") +
+  xlab("Race/Ethnicity") +
+  ylab("Turnout Percentage") +
   facet_wrap(~Age) +
   scale_x_discrete(labels = race_names) +
-  theme_minimal() +
-  labs(fill = "Races") +
+  # theme_minimal() +
+  labs(fill = "Race/Ethnicity") +
   scale_fill_viridis(discrete = TRUE, labels = race_names) +
-  theme(axis.text.x = element_blank(),
-        plot.title = element_text(hjust = .5)) 
+  theme(
+    axis.text.x = element_blank(),
+    plot.title = element_text(hjust = .5)) 
 
 race_table <- race_df
 race_table <- na.omit(race_table)
@@ -384,11 +393,11 @@ When looking at the average total percentage across all race groups, asians and 
 race_df %>% 
   filter(Age == '18 to 24') %>% 
   ggplot(aes(Year, value, group = variable, color = variable)) +
-  geom_point() + geom_line() +
+  geom_point(alpha = 0.5) + geom_smooth(se = FALSE) +
   ggtitle("Young Voters and Race") +
   ylab("Voting Percentage") +
   xlab("Years (1964-2018)") +
-  labs(color = "Races") +
+  labs(color = "Race/Ethnicity") +
   scale_x_discrete(labels = years_label) +
   scale_color_viridis(discrete = TRUE, labels = race_names) +
   theme(plot.title = element_text(hjust = .5))
@@ -397,12 +406,12 @@ race_df %>%
 race_table %>% 
   filter(Age == '18 to 24') %>% 
   ggplot(aes(Year, value, group = Age, color = variable)) +
-  geom_point() + geom_line() +
+  geom_point(alpha = 0.5) + geom_smooth(se = FALSE) +
   facet_wrap(~variable) +
   ggtitle("Young Voters and Race") +
   ylab("Voting Percentage") +
   xlab("Years (1964-2018)") +
-  labs(color = "Races") +
+  labs(color = "Race/Ethnicity") +
   scale_color_viridis(discrete = TRUE, labels = race_names) +
   theme_minimal() +
   theme(axis.text.x = element_blank(),
@@ -419,9 +428,9 @@ race_df %>%
   ggplot() +
   aes(variable, `Vote Percentage`, fill = variable) +
   geom_bar(stat = "identity") +
-  ggtitle("Mean Votes of Young Voters by Race") +
-  labs(fill = "Races") +
-  xlab("Races") +
+  ggtitle("Mean Percent Turnout of Young Voters by Race") +
+  labs(fill = "Race/Ethnicity") +
+  xlab("Race/Ethnicity") +
   scale_x_discrete(labels = race_names) + 
   scale_fill_viridis(discrete = TRUE, labels = race_names) + 
   theme(plot.title = element_text(hjust = .5)) 
@@ -431,10 +440,11 @@ race_df %>%
   ggplot() +
   aes(variable, value, fill = variable) +
   geom_boxplot() +
-  ggtitle("Votes of Young Voters by Race") +
-  xlab("Races") +
+  ggtitle("Percent Turnout of Young Voters by Race") +
+  # xlab("Race/Ethnicity") +
   ylab("Vote Percentage") +
-  labs(fill = "Races") +
+  xlab("Race/Ethnicity") +
+  labs(fill = "Race/Ethnicity") +
   scale_fill_viridis(discrete = TRUE, labels = race_names) +
   scale_x_discrete(labels = race_names) + 
   theme(plot.title = element_text(hjust = .5)) 
@@ -459,7 +469,7 @@ race_val_names <- c("White.Percent", "White.Non.Hispanic.Percent",
 
 inputPanel(
   selectInput("plot_race", "Choose a plot:", 
-              choices = list("Total Count" = 1, 
+              choices = list("All Voters" = 1, 
                               "Young Voters" = 2),
               selected = 1),
   checkboxGroupInput("race", "Choose a race group:",
@@ -503,15 +513,16 @@ gen_race_df <- function() {
 
 renderPlot({
   plot_df <- gen_race_df()
-  plot_title <- paste("Total", vote_status[as.numeric(input$status)], "by Race")
-  y_title <- paste("Percentage (", vote_status[as.numeric(input$status)], ")", sep = "")
+  plot_title <- paste("Percent", vote_status[as.numeric(input$status)], "by Race")
+  y_title <- paste("Percent of Eligible (", vote_status[as.numeric(input$status)], ")", sep = "")
   plot_df %>% 
     ggplot(aes(Year, value, group = variable, color = variable)) +
     geom_point() + geom_line() +
     ggtitle(plot_title) +
     ylab(y_title) +
+    ylim(0, 100) +
     xlab("Years (1964-2018)") +
-    labs(color = "Races") +
+    labs(color = "Race/Ethnicity") +
     scale_x_discrete(labels = years_label) +
     scale_color_viridis(discrete = TRUE) +
     theme(plot.title = element_text(hjust = .5))
@@ -597,6 +608,106 @@ ggplot(data = lm_fit) +
 ```
 
 We also checked the see how the model held based on a plot between residuals versus the fitted values. Unfortunately, there is a noticable pattern; a multiple linear regression model would probably not be the best model to use for prediction with race and young voters since the errors seem to be dependent on each other. In short, the current model is not accurate.
+
+
+## Young Voter Turnout and Election Results
+
+After taking a look at the factors affecting young voter turnout, we wanted to take a look at how young voter turnout influences presidential elections. By calculating the mean party score across the county, we were able to plot it against the turnout percentage. Party score is on a scale from -1 to 1, where -1 means 100% of the country voted for the Democrat Party, while 1 means 100% of the country voted for the Republican Party. This country mean was calculated from state party scores. Unfortunately, we did not have state-level turnout data broken down by age.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
+pres.results <- read_csv("1976-2016-president.csv")
+
+party.results <- pres.results %>% 
+      # full_join(select(sena.results, -district)) %>% 
+      # full_join(select(hous.results, -district)) %>% 
+      filter(writein == FALSE) %>% 
+      filter(year != 2018) %>% 
+      mutate(party = replace(party, party == "democratic-farmer-labor", "democrat")) %>% 
+      filter(party %in% c("democrat", "republican")) %>% 
+      select(-candidate) %>% 
+      pivot_wider(
+          names_from = party,
+          values_from = candidatevotes,
+          values_fill = list(democrat = 0, republican = 0)
+      ) %>% 
+      # filter(totalvotes != 1) %>% 
+      # party.results$democrat <- unlist(party.results$democrat, use.names = FALSE)
+      mutate(p.dem = democrat / totalvotes) %>% 
+      mutate(p.rep = republican / totalvotes) %>% 
+      mutate(partyscore = p.rep - p.dem)
+```
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
+hist.age.turnout <- hist_df %>% 
+  filter(Year %in% seq(1964, 2016, 4)) %>% 
+  filter(Status == "Voted") %>% 
+  filter(Age != "Total") %>% 
+  filter(election.type == "Presidential") %>% 
+  rename(year = Year)
+
+hist.age.turnout.res <- party.results %>% 
+  select(year, state, partyscore) %>% 
+  mutate(state = tolower(state)) %>% 
+  pivot_wider(names_from = state, values_from = partyscore) %>% 
+  mutate(country_mean = rowMeans(select(., alabama:`wyoming`))) %>% 
+  filter(year %in% seq(1964, 2016, 4)) %>% 
+  select(year, country_mean) %>%
+  mutate(year = as.factor(year)) %>% 
+  full_join(hist.age.turnout) %>% 
+  mutate(year = as.numeric(year)) %>% 
+  filter(year >= 1976)
+```
+
+Curiously enough, it was found that the years in which Ronald Reagan was elected presented significant outliers across all age groups, and so decided to look at the data both with and without the Reagan years.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
+with.reagan.plot <- hist.age.turnout.res %>% 
+  # filter(!(year %in% c(1980, 1984))) %>% 
+  ggplot() +
+    aes(x = Population.Percent, y = country_mean, color = Age) +
+    geom_point() +
+    geom_smooth(method = "lm") +
+    scale_color_viridis(discrete = TRUE) +
+    labs(x = "Percent Turnout", y = "Country Mean Party Score", title = "With Reagan") + 
+    theme(legend.position = "none") +
+    facet_wrap(~Age)
+
+without.reagan.plot <- hist.age.turnout.res %>% 
+  filter(!(year %in% c(1980, 1984))) %>%
+  ggplot() +
+    aes(x = Population.Percent, y = country_mean, color = Age) +
+    geom_point() +
+    geom_smooth(method = "lm") +
+    scale_color_viridis(discrete = TRUE) +
+    labs(x = "Percent Turnout", y = "Country Mean Party Score", title = "Without Reagan") + 
+    theme(legend.position = "none") +
+    facet_wrap(~Age)
+
+grid.arrange(with.reagan.plot, without.reagan.plot, nrow = 1, top = "Country Mean Party Score by Age Group")
+
+filter(hist.age.turnout.res, Age == "18 to 24")
+
+with.reagan <- lm(country_mean ~ Population.Percent, data = filter(hist.age.turnout.res, Age == "18 to 24"))
+plot(with.reagan)
+summary(with.reagan)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
+
+
+filter(hist.age.turnout.res, Age == "18 to 24")
+
+data.without.reagan <- hist.age.turnout.res %>% 
+  filter(!(year %in% c(1980, 1984))) %>%
+  filter(Age == "18 to 24")
+
+with.reagan <- lm(country_mean ~ Population.Percent, data = data.without.reagan)
+plot(with.reagan)
+summary(with.reagan)
+```
+
+Unfortunately, the p-value for each was incredibly large, and so we fail to reject the null hypothesis (that there is no relationship). We can't say more than it's inconclusive. In the future we would like to get state-level data for age group turnout, which may provide a more conclusive answer.
 
 ## The Future and Young Voter Turnout
 
@@ -693,29 +804,6 @@ alltime$type <- factor(alltime$type, levels = c("Presidential", "Midterm"))
 ```
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
-pres.results <- read_csv("1976-2016-president.csv")
-
-party.results <- pres.results %>% 
-      # full_join(select(sena.results, -district)) %>% 
-      # full_join(select(hous.results, -district)) %>% 
-      filter(writein == FALSE) %>% 
-      filter(year != 2018) %>% 
-      mutate(party = replace(party, party == "democratic-farmer-labor", "democrat")) %>% 
-      filter(party %in% c("democrat", "republican")) %>% 
-      select(-candidate) %>% 
-      pivot_wider(
-          names_from = party,
-          values_from = candidatevotes,
-          values_fill = list(democrat = 0, republican = 0)
-      ) %>% 
-      # filter(totalvotes != 1) %>% 
-      # party.results$democrat <- unlist(party.results$democrat, use.names = FALSE)
-      mutate(p.dem = democrat / totalvotes) %>% 
-      mutate(p.rep = republican / totalvotes) %>% 
-      mutate(partyscore = p.rep - p.dem)
-```
-
-```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
 gen.turn <- read_excel(
         "1980-2014 November General Election.xlsx",
         skip = 1
@@ -776,38 +864,11 @@ results <- read_csv("1976-2016-president.csv")
         mutate(partyscore = p.rep - p.dem)
 ```
 
-## A few plots
+## Overall Turnout and Party Score
 
-```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
-ggplot(byage) +
-  aes(
-    x = as.factor(year), 
-    y = turnout, 
-    color = age.group, 
-    group = age.group) +
-  geom_line(size = 1) +
-  scale_y_continuous(labels = scales::percent, limits = c(0, 1)) +
-  labs(x = "Year", y = "Turnout", title = "Election Turnout", color = "Age Group") +
-  theme_minimal() +
-  scale_color_viridis(discrete = TRUE) +
-  facet_wrap(~type, scales = "free_x") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+After looking at the young voting population we wanted to look at the broader affects of voter turnout.
 
-ggplot(alltime) +
-  aes(
-    x = year, 
-    y = turnout, 
-    color = type, 
-    group = type) +
-  geom_line(size = 1) +
-  ylim(0, 100) +
-  labs(x = "Year", y = "Turnout", title = "Overall Election Turnout", color = "Election Type") +
-  theme_minimal() +
-  scale_color_viridis(discrete = TRUE) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-```
-
-## Per-State turnout and party score
+### Interactive: Per-State Turnout and Party Score
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 inputPanel(
@@ -837,11 +898,12 @@ inputPanel(
                   coord_map(projection = "albers", lat0=30, lat1=40) +
                   labs(title = paste("Election Turnout Rates by State (", input$year, ")", sep = ""), fill = "Turnout") +
                   theme_void() +
+                  theme(legend.position = "bottom", legend.box = "horizontal") +
                   fifty_states_inset_boxes() + 
                   facet_wrap(~type)
           
           if (input$relscale) {
-              ret_plot + scale_fill_viridis(label = scales::percent)
+              ret_plot + scale_fill_viridis(label = scales::percent, guide = guide_colorbar(title.position = "top"))
           }
           else {
               ret_plot + scale_fill_viridis(limits = c(0, 1), label = scales::percent)
@@ -876,24 +938,26 @@ inputPanel(
 )
 ```
 
-
-
-## Testing overall turnout vs party score
+We decided to look at overall turnout and its affect on party score in recent years, so we took the party score and turnout for each state from 2000 to 2016. 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
 test2 %>% 
   filter(year >= 2000) %>% 
   ggplot() +
-    aes(x = turnout, y = partyscore) +
+    aes(x = turnout, y = partyscore, color = partyscore) +
     geom_point() +
+    scale_color_viridis(limits = c(-1, 1)) +
+    labs(x = "Percent Turnout", y = "Party Score", title = "Party Score vs. Percent Turnout, 2000 to 2016") +
     geom_smooth(method = "lm")
     # facet_wrap(~year)
 
 test2 %>% 
   filter(year >= 2000) %>% 
   ggplot() +
-    aes(x = turnout, y = partyscore) +
+    aes(x = turnout, y = partyscore, color = partyscore) +
     geom_point() +
+    scale_color_viridis(limits = c(-1, 1)) +
+    labs(x = "Percent Turnout", y = "Party Score", title = "Party Score vs. Percent Turnout, by Year") +
     geom_smooth(method = "lm") +
     facet_wrap(~year)
 ```
@@ -907,61 +971,4 @@ plot(fit.turn.res)
 summary(fit.turn.res)
 ```
 
-```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
-hist.age.turnout <- hist_df %>% 
-  filter(Year %in% seq(1964, 2016, 4)) %>% 
-  filter(Status == "Voted") %>% 
-  filter(Age != "Total") %>% 
-  filter(election.type == "Presidential") %>% 
-  rename(year = Year)
-
-hist.age.turnout.res <- party.results %>% 
-  select(year, state, partyscore) %>% 
-  mutate(state = tolower(state)) %>% 
-  pivot_wider(names_from = state, values_from = partyscore) %>% 
-  mutate(country_mean = rowMeans(select(., alabama:`wyoming`))) %>% 
-  filter(year %in% seq(1964, 2016, 4)) %>% 
-  select(year, country_mean) %>%
-  mutate(year = as.factor(year)) %>% 
-  full_join(hist.age.turnout) %>% 
-  mutate(year = as.numeric(year)) %>% 
-  filter(year >= 1976)
-```
-
-with ronald reagan:
-
-```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
-hist.age.turnout.res %>% 
-  # filter(!(year %in% c(1980, 1984))) %>% 
-  ggplot() +
-    aes(x = Population.Percent, y = country_mean, color = Age) +
-    geom_point() +
-    geom_smooth(method = "lm")
-
-filter(hist.age.turnout.res, Age == "18 to 24")
-
-with.reagan <- lm(country_mean ~ Population.Percent, data = filter(hist.age.turnout.res, Age == "18 to 24"))
-plot(with.reagan)
-summary(with.reagan)
-```
-
-without ronald reagan:
-
-```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.fullwidth=TRUE}
-hist.age.turnout.res %>% 
-  filter(!(year %in% c(1980, 1984))) %>%
-  ggplot() +
-    aes(x = Population.Percent, y = country_mean, color = Age) +
-    geom_point() +
-    geom_smooth(method = "lm")
-
-filter(hist.age.turnout.res, Age == "18 to 24")
-
-data.without.reagan <- hist.age.turnout.res %>% 
-  filter(!(year %in% c(1980, 1984))) %>%
-  filter(Age == "18 to 24")
-
-with.reagan <- lm(country_mean ~ Population.Percent, data = data.without.reagan)
-plot(with.reagan)
-summary(with.reagan)
-```
+The result is a negative association (-0.5654) between percent turnout and party score, which implies that greater percent turnout pushes a state's overall vote toward the Democrat Party. This association is statistically significant, with a p-value of 0.00629 - we must reject the null hypothesis that there is no association.The Adjusted R-squared value is incredibly low at 0.0253, meaning that our model explains only about 2.5% of the variation in the data. This is likely due to the numerous factors beyond simple turnout which affect the party leanings of a given state, however it remains interesting that turnout is as significant as it is.
