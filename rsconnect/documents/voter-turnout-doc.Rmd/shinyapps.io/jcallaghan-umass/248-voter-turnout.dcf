@@ -1,0 +1,12 @@
+name: 248-voter-turnout
+title: 248-voter-turnout
+username:
+account: jcallaghan-umass
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 2236322
+bundleId: 3099267
+url: https://jcallaghan-umass.shinyapps.io/248-voter-turnout/
+when: 1588560120.02919
+asMultiple: FALSE
+asStatic: FALSE

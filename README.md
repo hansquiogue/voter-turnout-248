@@ -1,3 +1,9 @@
-# Visualizing the Impact of Voter Age on Election Outcomes
+# Voter Turnout Project
 
-This repository will contain the data and files relevant to our Info 248 final project.
+Jackson Callaghan, Hans Quiogue
+
+Our project contains interactive elements and so can't be submitted as a PDF. It has been published to shinyapps.io. 
+
+Our project may be viewed here: https://jcallaghan-umass.shinyapps.io/248-voter-turnout/
+
+
